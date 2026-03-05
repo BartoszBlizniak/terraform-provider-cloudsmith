@@ -11,9 +11,9 @@ import (
 
 var (
 	testAccOidcDataServiceName       = testAccUniqueName("test-oidc-service-account-data")
-	testAccOidcDataProviderName      = testAccUniqueName("test-oidc-terraform-provider")
+	testAccOidcDataProviderName      = testAccUniqueName("test-oidc-terraform-provider-data")
 	testAccOidcDataDynServiceAName   = testAccUniqueName("test-oidc-service-account-dyn-a")
-	testAccOidcDataDynProviderName   = testAccUniqueName("test-oidc-terraform-provider-dynamic")
+	testAccOidcDataDynProviderName   = testAccUniqueName("test-oidc-terraform-provider-dynamic-data")
 	testAccOidcDataDynMappingClaim   = "sub"
 	testAccOidcDataDynMappingValue   = "value1"
 	testAccOidcDataDynExpectedClaims = "example"

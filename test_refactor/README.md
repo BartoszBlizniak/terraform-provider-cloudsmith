@@ -13,6 +13,7 @@ This document summarizes the acceptance-test refactor work completed to improve 
 
 ### Name collisions and nondeterministic org-level tests
 - OIDC tests reused fixed names and could fail with uniqueness errors (`name` must be unique).
+- OIDC resource tests and OIDC data-source tests were generating the same computed names from identical base strings, causing parallel collisions.
 - Multiple acceptance resources were using shared/static naming patterns in one org, increasing collision risk.
 
 ### Parallel execution instability
@@ -33,6 +34,7 @@ This document summarizes the acceptance-test refactor work completed to improve 
 
 ### Acceptance test hardening
 - Added unique test naming helper and adopted it in collision-prone OIDC and retention tests.
+- Increased OIDC test-name uniqueness entropy (longer hash + random suffix) and separated OIDC data-source name bases from resource test name bases.
 - Updated brittle attribute checks to compare service slugs via attribute pairing where needed.
 - Replaced all acceptance test cases from shared `Providers` to `ProviderFactories` to create isolated provider instances.
 - Added a dedicated check-time provider-config helper so destroy/existence checks no longer depend on shared `testAccProvider.Meta()`.
@@ -40,14 +42,17 @@ This document summarizes the acceptance-test refactor work completed to improve 
 
 ### CI workflow changes
 - Acceptance workflow trigger scope updated to avoid duplicate org contention (`pull_request` plus `push` on `main`).
-- Acceptance workflow test parallelism increased from `-parallel=6` to `-parallel=8`.
+- Acceptance workflow test parallelism increased from `-parallel=6` to `-parallel=16`.
 
 ## Validation Evidence
 - Targeted reruns for known flaky cases were repeated and passed.
 - Resource acceptance matrix passed repeatedly at `-parallel=6`.
 - Resource acceptance matrix passed repeatedly at `-parallel=8`.
+- Full workflow-equivalent command passed at `-parallel=10`.
+- Full workflow-equivalent command passed at `-parallel=12`.
+- Full workflow-equivalent command passed repeatedly at `-parallel=16`.
 - Exact workflow-style command succeeded:
-  - `TF_ACC=1 go test -v ./... -parallel=8 -timeout=30m`
+  - `TF_ACC=1 go test -v ./... -parallel=16 -count=1 -timeout=30m`
 
 ## Current Outcome
 - Acceptance stability is significantly improved.

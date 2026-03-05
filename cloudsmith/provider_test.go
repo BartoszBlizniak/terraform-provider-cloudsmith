@@ -2,6 +2,8 @@
 package cloudsmith
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"hash/fnv"
 	"net/http"
@@ -44,9 +46,19 @@ func testAccUniqueName(base string) string {
 }
 
 func shortTestAccSuffix() string {
-	s := strconv.FormatInt(time.Now().UnixNano(), 36)
-	if len(s) > 4 {
-		return s[len(s)-4:]
+	var randomBytes [8]byte
+	if _, err := rand.Read(randomBytes[:]); err == nil {
+		s := strconv.FormatUint(binary.BigEndian.Uint64(randomBytes[:]), 36)
+		if len(s) > 10 {
+			return s[len(s)-10:]
+		}
+		return s
+	}
+
+	// Fallback if entropy source is unavailable.
+	s := strconv.FormatInt(time.Now().UnixNano(), 36) + strconv.Itoa(os.Getpid())
+	if len(s) > 10 {
+		return s[len(s)-10:]
 	}
 	return s
 }
@@ -55,8 +67,8 @@ func shortHash(s string) string {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(s))
 	hash := strconv.FormatUint(uint64(h.Sum32()), 36)
-	if len(hash) > 3 {
-		return hash[:3]
+	if len(hash) > 6 {
+		return hash[:6]
 	}
 	return hash
 }
