@@ -42,7 +42,7 @@ This document summarizes the acceptance-test refactor work completed to improve 
 
 ### CI workflow changes
 - Acceptance workflow trigger scope updated to avoid duplicate org contention (`pull_request` plus `push` on `main`).
-- Acceptance workflow test parallelism increased from `-parallel=6` to `-parallel=16`.
+- Acceptance workflow test parallelism increased from `-parallel=6` to `-parallel=64`.
 
 ## Validation Evidence
 - Targeted reruns for known flaky cases were repeated and passed.
@@ -51,8 +51,11 @@ This document summarizes the acceptance-test refactor work completed to improve 
 - Full workflow-equivalent command passed at `-parallel=10`.
 - Full workflow-equivalent command passed at `-parallel=12`.
 - Full workflow-equivalent command passed repeatedly at `-parallel=16`.
+- Full workflow-equivalent command passed at `-parallel=32`.
+- Full workflow-equivalent command passed at `-parallel=48`.
+- Full workflow-equivalent command passed repeatedly at `-parallel=64` (`-count=3`).
 - Exact workflow-style command succeeded:
-  - `TF_ACC=1 go test -v ./... -parallel=16 -count=1 -timeout=30m`
+  - `TF_ACC=1 go test -v ./... -parallel=64 -count=3 -timeout=45m`
 
 ## Current Outcome
 - Acceptance stability is significantly improved.
