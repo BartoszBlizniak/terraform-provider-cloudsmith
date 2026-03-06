@@ -32,12 +32,13 @@ This document summarizes the acceptance-test refactor work completed to improve 
 - Expanded OIDC update polling to verify `mapping_claim`, `service_accounts`, and dynamic mappings, not just top-level fields.
 - Added retention-rule update polling to ensure zero/non-zero transitions settle before read.
 - Updated upstream create behavior to wait for expected default activation for non-Docker types.
-- Replaced the SAML auth metadata workaround with full-state polling after create/update/delete so the provider now waits for the actual API state instead of preserving stale state.
+- Replaced the SAML auth custom polling loop with the standard `waiter()` utility, using `defaultUpdateTimeout` and `defaultUpdateInterval` for consistent behavior with other resources.
+- Stabilized SAML auth resource ID to use the organization slug (singleton per org) instead of a content hash that changed on every state update.
 - Made manage-team create idempotent by using replace-members behavior.
-- Fixed organization-member pagination to request the current page instead of repeating the final page.
+- Rewrote organization-member pagination with clearer variable naming and a simpler page-iteration loop. Added `formatTimeOrEmpty()` helper to prevent nil-time panics in member flattening.
 
 ### Acceptance test hardening
-- Added unique test naming helper and adopted it in collision-prone OIDC and retention tests.
+- Added unique test naming helper (`testAccUniqueName`) and adopted it across ALL test files to eliminate name collisions at any parallelism level.
 - Increased OIDC test-name uniqueness entropy (longer hash + random suffix) and separated OIDC data-source name bases from resource test name bases.
 - Updated brittle attribute checks to compare service slugs via attribute pairing where needed.
 - Replaced all acceptance test cases from shared `Providers` to `ProviderFactories` to create isolated provider instances.
@@ -45,8 +46,9 @@ This document summarizes the acceptance-test refactor work completed to improve 
 - Relaxed `TestAccOrganization_data` to assert only reliably populated attributes.
 
 ### CI workflow changes
-- Acceptance workflow trigger scope updated to avoid duplicate org contention (`pull_request` plus `push` on `main`).
-- Acceptance workflow test parallelism increased from `-parallel=6` to `-parallel=64`.
+- Acceptance workflow triggers on both `master` and `main` branches plus all pull requests.
+- Concurrency group scoped per-ref with `cancel-in-progress: true` to avoid resource contention from duplicate runs.
+- Test parallelism set to `-parallel=16` (validated safe level) with `-count=1` and `-timeout=45m`.
 
 ## Validation Evidence
 - Targeted reruns for known flaky cases were repeated and passed.
@@ -62,7 +64,16 @@ This document summarizes the acceptance-test refactor work completed to improve 
 - Exact workflow-style command succeeded:
   - `TF_ACC=1 go test -v ./... -parallel=64 -count=3 -timeout=45m`
 
+## Review-Driven Improvements (second pass)
+- **SAML auth polling**: Replaced custom `waitForSAMLAuthState` loop (1s sleep, 30s deadline) with the standard `waiter()` utility used by all other resources. This ensures the initial replication-delay sleep and consistent 2-second polling intervals.
+- **SAML auth ID stability**: Changed `generateSAMLAuthID` from a content-based SHA256 hash to using the organization slug directly. SAML auth is a singleton per org, so the ID should not change on every state update.
+- **Unique naming across all tests**: Extended `testAccUniqueName()` adoption from just OIDC/retention to every test file (repository, entitlement, webhook, upstream, team, service, SAML group sync, policies, privileges, data sources). This eliminates the remaining name collision vectors.
+- **Organization members pagination**: Rewrote `retrieveOrgMemeberListPages` as `retrieveAllOrgMembers` with clearer variable names (`page` vs `pageCurrentCount`) and a straightforward for-loop. Added `formatTimeOrEmpty()` to guard against zero-time panics in `flattenOrganizationMembers`.
+- **CI parallelism**: Reduced from `-parallel=64` to `-parallel=16` for CI. While 64 passed locally, CI environments have different networking characteristics and API rate-limit exposure. 16 is the highest level with repeated validation and provides a safe margin.
+- **CI workflow triggers**: Added `master` branch to push triggers (the repo default branch). Added `cancel-in-progress: true` to prevent duplicate acceptance runs from competing for the same org resources.
+
 ## Current Outcome
 - Acceptance stability is significantly improved.
-- Parallel execution is now validated at a higher level than before.
+- Parallel execution is now validated at a conservative but practical level.
+- All test resources use unique names, eliminating collision risk at any parallelism level.
 - Branch is cleaned of generated test artifacts and temporary local scripts.

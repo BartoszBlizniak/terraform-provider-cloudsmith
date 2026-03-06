@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var testAccEntitlementControlRepositoryName = testAccUniqueName("terraform-acc-ent-ctrl")
+
 // TestAccEntitlementControl_basic spins up a repository and uses its default entitlement token,
 // creates an entitlement control with the token disabled, verifies it exists and checks
 // the enabled state is set correctly. Then it changes the enabled state to true,
@@ -191,7 +193,7 @@ func waitForEntitlementControlEnabled(pc *providerConfig, namespace, repository,
 
 var testAccEntitlementControlConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-ent-ctrl"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -207,11 +209,11 @@ resource "cloudsmith_entitlement_control" "test" {
     identifier = data.cloudsmith_entitlement_list.test.entitlement_tokens[0].slug_perm
     enabled    = true
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccEntitlementControlRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccEntitlementControlConfigBasicUpdate = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-ent-ctrl"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -227,4 +229,4 @@ resource "cloudsmith_entitlement_control" "test" {
     identifier = data.cloudsmith_entitlement_list.test.entitlement_tokens[0].slug_perm
     enabled    = false
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccEntitlementControlRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"))

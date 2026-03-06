@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var testAccDataSourceTeamMembersName = testAccUniqueName("acc-team-members")
+
 // TestAccDataSourceTeamMembers_basic validates that team members are listed with expected fields.
 func TestAccDataSourceTeamMembers_basic(t *testing.T) {
 	t.Parallel()
@@ -19,7 +21,7 @@ func TestAccDataSourceTeamMembers_basic(t *testing.T) {
 			{
 				Config: testAccDataSourceTeamMembersConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.cloudsmith_team_members.test", "team_name", "terraform-acc-test-team-members"),
+					resource.TestCheckResourceAttr("data.cloudsmith_team_members.test", "team_name", testAccDataSourceTeamMembersName),
 					resource.TestCheckResourceAttrSet("data.cloudsmith_team_members.test", "members.0.user"),
 					resource.TestCheckResourceAttrSet("data.cloudsmith_team_members.test", "members.0.role"),
 				),
@@ -31,7 +33,7 @@ func TestAccDataSourceTeamMembers_basic(t *testing.T) {
 func testAccDataSourceTeamMembersConfig() string {
 	return fmt.Sprintf(`
 resource "cloudsmith_team" "example" {
-  name         = "terraform-acc-test-team-members"
+  name         = "%s"
   organization = "%s"
   description  = "Acceptance test team members"
   visibility   = "Visible"
@@ -42,5 +44,5 @@ data "cloudsmith_team_members" "test" {
   team_name    = cloudsmith_team.example.name
   depends_on   = [cloudsmith_team.example]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccDataSourceTeamMembersName, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
 }

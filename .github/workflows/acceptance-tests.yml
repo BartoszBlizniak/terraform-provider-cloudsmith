@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches:
+      - master
       - main
 
 jobs:
@@ -11,7 +12,8 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     concurrency:
-      group: global
+      group: acceptance-tests-${{ github.ref }}
+      cancel-in-progress: true
     timeout-minutes: 60
     steps:
     - name: Install Go 1.19
@@ -33,7 +35,7 @@ jobs:
 
     - name: Run tests
       run: |
-        TF_ACC=1 go test -v ./... -parallel=64 -timeout=30m
+        TF_ACC=1 go test -v ./... -parallel=16 -count=1 -timeout=45m
       env:
         CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}

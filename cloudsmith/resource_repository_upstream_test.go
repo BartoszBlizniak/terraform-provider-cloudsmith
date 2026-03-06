@@ -18,6 +18,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccRepositoryUpstreamCargoName       = testAccUniqueName("terraform-acc-upst-cargo")
+	testAccRepositoryUpstreamCondaName       = testAccUniqueName("terraform-acc-upst-conda")
+	testAccRepositoryUpstreamDartName        = testAccUniqueName("terraform-acc-upst-dart")
+	testAccRepositoryUpstreamDebName         = testAccUniqueName("terraform-acc-upst-deb")
+	testAccRepositoryUpstreamDockerName      = testAccUniqueName("terraform-acc-upst-docker")
+	testAccRepositoryUpstreamGenericName     = testAccUniqueName("terraform-acc-upst-generic")
+	testAccRepositoryUpstreamGoName          = testAccUniqueName("terraform-acc-upst-go")
+	testAccRepositoryUpstreamHelmName        = testAccUniqueName("terraform-acc-upst-helm")
+	testAccRepositoryUpstreamHuggingfaceName = testAccUniqueName("terraform-acc-upst-hugg")
+	testAccRepositoryUpstreamHexName         = testAccUniqueName("terraform-acc-upst-hex")
+	testAccRepositoryUpstreamMavenName       = testAccUniqueName("terraform-acc-upst-maven")
+	testAccRepositoryUpstreamNpmName         = testAccUniqueName("terraform-acc-upst-npm")
+	testAccRepositoryUpstreamNugetName       = testAccUniqueName("terraform-acc-upst-nuget")
+	testAccRepositoryUpstreamPythonName      = testAccUniqueName("terraform-acc-upst-python")
+	testAccRepositoryUpstreamRpmName         = testAccUniqueName("terraform-acc-upst-rpm")
+	testAccRepositoryUpstreamRubyName        = testAccUniqueName("terraform-acc-upst-ruby")
+	testAccRepositoryUpstreamComposerName    = testAccUniqueName("terraform-acc-upst-comp")
+)
+
 func TestAccRepositoryUpstreamCargo_basic(t *testing.T) {
 	t.Parallel()
 
@@ -25,7 +45,7 @@ func TestAccRepositoryUpstreamCargo_basic(t *testing.T) {
 
 	testAccRepositoryCargoUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-cargo"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -36,11 +56,11 @@ resource "cloudsmith_repository_upstream" "crates_io" {
     upstream_type = "cargo"
     upstream_url  = "https://index.crates.io"
 }
-`, namespace)
+`, testAccRepositoryUpstreamCargoName, namespace)
 
 	testAccRepositoryCargoUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-cargo"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -59,7 +79,7 @@ resource "cloudsmith_repository_upstream" "crates_io" {
 	    upstream_url   = "https://index.crates.io"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamCargoName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -128,7 +148,7 @@ func TestAccRepositoryUpstreamConda_basic(t *testing.T) {
 
 	testAccRepositoryCondaUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-conda"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -139,11 +159,11 @@ resource "cloudsmith_repository_upstream" "conda_forge" {
     upstream_type = "conda"
     upstream_url  = "https://conda.anaconda.org/conda-forge"
 }
-`, namespace)
+`, testAccRepositoryUpstreamCondaName, namespace)
 
 	testAccRepositoryCondaUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-conda"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -158,7 +178,7 @@ resource "cloudsmith_repository_upstream" "conda_forge" {
 	    upstream_type  = "conda"
 	    upstream_url   = "https://conda.anaconda.org/conda-forge"
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamCondaName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -221,7 +241,7 @@ func TestAccRepositoryUpstreamDart_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-dart"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -232,11 +252,11 @@ resource "cloudsmith_repository_upstream" "pub_dev" {
     upstream_type = "dart"
     upstream_url  = "https://pub.dev"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-dart"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -255,7 +275,7 @@ resource "cloudsmith_repository_upstream" "pub_dev" {
 	    upstream_url   = "https://pub.dev"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -324,7 +344,7 @@ func TestAccRepositoryUpstreamDeb_basic(t *testing.T) {
 
 	var testAccRepositoryDebUpstreamConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-deb"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -337,11 +357,11 @@ resource "cloudsmith_repository_upstream" "ubuntu" {
     upstream_type   = "deb"
     upstream_url    = "http://archive.ubuntu.com/ubuntu"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDebName, namespace)
 
 	var testAccRepositoryDebUpstreamConfigUpdate = fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-deb"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -364,7 +384,7 @@ resource "cloudsmith_repository_upstream" "ubuntu" {
 	    upstream_url          = "http://archive.ubuntu.com/ubuntu"
 	    verify_ssl            = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDebName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -510,7 +530,7 @@ func TestAccRepositoryUpstreamDocker_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-docker"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -524,11 +544,11 @@ resource "cloudsmith_repository_upstream" "fakedocker" {
 	auth_secret    = "SuperSecretPassword123!"
 	auth_username  = "jonny.tables"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-docker"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -550,11 +570,11 @@ resource "cloudsmith_repository_upstream" "fakedocker" {
 	    upstream_url   = "https://index.docker.io"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigCert := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-docker"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -654,7 +674,7 @@ func TestAccRepositoryUpstreamGeneric_basic(t *testing.T) {
 
 	testAccRepositoryGenericUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-generic"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -666,11 +686,11 @@ resource "cloudsmith_repository_upstream" "gradle_distributions" {
     upstream_url    = "https://services.gradle.org"
     upstream_prefix = "distributions"
 }
-`, namespace)
+`, testAccRepositoryUpstreamGenericName, namespace)
 
 	testAccRepositoryGenericUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-generic"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -690,7 +710,7 @@ resource "cloudsmith_repository_upstream" "gradle_distributions" {
 	    upstream_prefix = "distributions"
 	    verify_ssl      = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamGenericName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -761,7 +781,7 @@ func TestAccRepositoryUpstreamGo_basic(t *testing.T) {
 
 	testAccRepositoryGoUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-go"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -772,11 +792,11 @@ resource "cloudsmith_repository_upstream" "go_proxy" {
     upstream_type = "go"
     upstream_url  = "https://proxy.golang.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamGoName, namespace)
 
 	testAccRepositoryGoUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-go"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -795,7 +815,7 @@ resource "cloudsmith_repository_upstream" "go_proxy" {
 	    upstream_url   = "https://proxy.golang.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamGoName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -864,7 +884,7 @@ func TestAccRepositoryUpstreamHelm_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-helm"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -875,11 +895,11 @@ resource "cloudsmith_repository_upstream" "helm" {
     upstream_type = "helm"
     upstream_url  = "https://charts.helm.sh/stable"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-helm"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -901,7 +921,7 @@ resource "cloudsmith_repository_upstream" "helm" {
 	    upstream_url   = "https://charts.helm.sh/stable"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -971,7 +991,7 @@ func TestAccRepositoryUpstreamHuggingface_basic(t *testing.T) {
 
 	testAccRepositoryHuggingfaceUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-huggingface"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -982,11 +1002,11 @@ resource "cloudsmith_repository_upstream" "hugging_face" {
     upstream_type = "huggingface"
     upstream_url  = "https://huggingface.co"
 }
-`, namespace)
+`, testAccRepositoryUpstreamHuggingfaceName, namespace)
 
 	testAccRepositoryHuggingfaceUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-huggingface"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1001,7 +1021,7 @@ resource "cloudsmith_repository_upstream" "hugging_face" {
 	    upstream_type  = "huggingface"
 	    upstream_url   = "https://huggingface.co"
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamHuggingfaceName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1064,7 +1084,7 @@ func TestAccRepositoryUpstreamHex_basic(t *testing.T) {
 
 	testAccRepositoryHexUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-hex"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1075,11 +1095,11 @@ resource "cloudsmith_repository_upstream" "hex" {
     upstream_type = "hex"
     upstream_url  = "https://repo.hex.pm"
 }
-`, namespace)
+`, testAccRepositoryUpstreamHexName, namespace)
 
 	testAccRepositoryHexUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-hex"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1094,7 +1114,7 @@ resource "cloudsmith_repository_upstream" "hex" {
 	    upstream_type  = "hex"
 	    upstream_url   = "https://repo.hex.pm"
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamHexName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1157,7 +1177,7 @@ func TestAccRepositoryUpstreamMaven_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-maven"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1168,11 +1188,11 @@ resource "cloudsmith_repository_upstream" "maven_central" {
     upstream_type = "maven"
     upstream_url  = "https://repo1.maven.org/maven2"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-maven"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1191,7 +1211,7 @@ resource "cloudsmith_repository_upstream" "maven_central" {
 	    upstream_url   = "https://repo1.maven.org/maven2"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1261,7 +1281,7 @@ func TestAccRepositoryUpstreamNpm_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-npm"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1274,11 +1294,11 @@ resource "cloudsmith_repository_upstream" "npmjs" {
     is_active      = true
 
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-npm"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1297,7 +1317,7 @@ resource "cloudsmith_repository_upstream" "npmjs" {
 	    upstream_url   = "https://registry.npmjs.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1366,7 +1386,7 @@ func TestAccRepositoryUpstreamNuget_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-nuget"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1377,11 +1397,11 @@ resource "cloudsmith_repository_upstream" "nuget" {
     upstream_type = "nuget"
     upstream_url  = "https://api.nuget.org/v3/index.json"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-nuget"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1400,7 +1420,7 @@ resource "cloudsmith_repository_upstream" "nuget" {
 	    upstream_url   = "https://api.nuget.org/v3/index.json"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1470,7 +1490,7 @@ func TestAccRepositoryUpstreamPython_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-python"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1481,11 +1501,11 @@ resource "cloudsmith_repository_upstream" "pypi" {
     upstream_type = "python"
     upstream_url  = "https://pypi.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-python"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1507,7 +1527,7 @@ resource "cloudsmith_repository_upstream" "pypi" {
 	    upstream_url   = "https://pypi.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1577,7 +1597,7 @@ func TestAccRepositoryUpstreamRpm_basic(t *testing.T) {
 
 	var testAccRepositoryRpmUpstreamConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-rpm"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1590,11 +1610,11 @@ resource "cloudsmith_repository_upstream" "rpm_fusion" {
     upstream_url   = "https://download1.rpmfusion.org/free/fedora/releases/35/Everything/x86_64/os"
 	is_active      = false
 }
-`, namespace)
+`, testAccRepositoryUpstreamRpmName, namespace)
 
 	var testAccRepositoryRpmUpstreamConfigUpdate = fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-rpm"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1618,7 +1638,7 @@ resource "cloudsmith_repository_upstream" "rpm_fusion" {
 	    upstream_url    = "https://download1.rpmfusion.org/free/fedora/releases/35/Everything/x86_64/os"
 	    verify_ssl        = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamRpmName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1685,7 +1705,7 @@ func TestAccRepositoryUpstreamRuby_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-ruby"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1696,11 +1716,11 @@ resource "cloudsmith_repository_upstream" "rubygems" {
     upstream_type = "ruby"
     upstream_url  = "https://rubygems.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-ruby"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1722,7 +1742,7 @@ resource "cloudsmith_repository_upstream" "rubygems" {
 	    upstream_url   = "https://rubygems.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -1792,7 +1812,7 @@ func TestAccRepositoryUpstreamComposer_basic(t *testing.T) {
 
 	testAccRepositoryComposerUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-composer"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1803,11 +1823,11 @@ resource "cloudsmith_repository_upstream" "packagist" {
     upstream_type = "composer"
     upstream_url  = "https://packagist.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamComposerName, namespace)
 
 	testAccRepositoryComposerUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-composer"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1829,7 +1849,7 @@ resource "cloudsmith_repository_upstream" "packagist" {
 	    upstream_url   = "https://packagist.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamComposerName, namespace)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },

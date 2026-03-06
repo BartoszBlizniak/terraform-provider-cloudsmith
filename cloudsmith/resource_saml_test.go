@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var testAccSamlTeamName = testAccUniqueName("acc-saml-team")
+
 func TestAccSaml_basic(t *testing.T) {
 	t.Parallel()
 
@@ -26,7 +28,7 @@ func TestAccSaml_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "idp_key", "test-idp-key"),
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "idp_value", "test-idp-value"),
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "role", "Member"),
-					resource.TestCheckResourceAttr("cloudsmith_saml.test", "team", "test-team"),
+					resource.TestCheckResourceAttrPair("cloudsmith_saml.test", "team", "cloudsmith_team.test", "slug"),
 				),
 			},
 			{
@@ -37,7 +39,7 @@ func TestAccSaml_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "idp_key", "test-idp-key"),
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "idp_value", "test-idp-value"),
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "role", "Manager"),
-					resource.TestCheckResourceAttr("cloudsmith_saml.test", "team", "test-team"),
+					resource.TestCheckResourceAttrPair("cloudsmith_saml.test", "team", "cloudsmith_team.test", "slug"),
 				),
 			},
 			{
@@ -48,7 +50,7 @@ func TestAccSaml_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "idp_key", "test-idp-key-updated"),
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "idp_value", "test-idp-value-updated"),
 					resource.TestCheckResourceAttr("cloudsmith_saml.test", "role", "Manager"),
-					resource.TestCheckResourceAttr("cloudsmith_saml.test", "team", "test-team"),
+					resource.TestCheckResourceAttrPair("cloudsmith_saml.test", "team", "cloudsmith_team.test", "slug"),
 				),
 			},
 		},
@@ -125,7 +127,7 @@ func testAccSamlCheckExists(resourceName string) resource.TestCheckFunc {
 var testAccSamlConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
 	organization = "%s"
-	name      = "test-team"
+	name      = "%s"
 }
 
 resource "cloudsmith_saml" "test" {
@@ -134,12 +136,12 @@ resource "cloudsmith_saml" "test" {
 	idp_value 	= "test-idp-value"
 	role 		= "Member"
 	team 		= cloudsmith_team.test.slug
-}`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+}`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccSamlTeamName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccSamlConfigBasicUpdateRole = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
 	organization = "%s"
-	name      = "test-team"
+	name      = "%s"
 }
 
 resource "cloudsmith_saml" "test" {
@@ -148,12 +150,12 @@ resource "cloudsmith_saml" "test" {
 	idp_value 	= "test-idp-value"
 	role 		= "Manager"
 	team 		= cloudsmith_team.test.slug
-}`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+}`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccSamlTeamName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccSamlConfigBasicUpdateIDP = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
 	organization = "%s"
-	name      = "test-team"
+	name      = "%s"
 }
 
 resource "cloudsmith_saml" "test" {
@@ -162,4 +164,4 @@ resource "cloudsmith_saml" "test" {
 	idp_value 	= "test-idp-value-updated"
 	role 		= "Manager"
 	team 		= cloudsmith_team.test.slug
-}`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+}`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccSamlTeamName, os.Getenv("CLOUDSMITH_NAMESPACE"))

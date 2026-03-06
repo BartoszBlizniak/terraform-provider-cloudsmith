@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var testAccWebhookRepositoryName = testAccUniqueName("terraform-acc-webhook")
+
 // TestAccWebhook_basic spins up a repository with all default options,
 // creates a webhook with default options and verifies it exists and checks
 // the name is set correctly. Then it changes the name and some of the
@@ -152,7 +154,7 @@ func testAccWebhookCheckExists(resourceName string) resource.TestCheckFunc {
 
 var testAccWebhookConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-webhook"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -163,11 +165,11 @@ resource "cloudsmith_webhook" "test" {
 	events     = ["package.created", "package.deleted", "package.failed", "package.security_scanned", "package.synced", "package.syncing", "package.tags_updated"]
 	target_url = "https://example.com"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccWebhookRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccWebhookConfigBasicUpdate = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-webhook"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -178,11 +180,11 @@ resource "cloudsmith_webhook" "test" {
 	events     = ["package.created", "package.deleted"]
 	target_url = "https://example.com"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccWebhookRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccWebhookConfigBasicUpdateWithTemplate = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-webhook"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -204,11 +206,11 @@ resource "cloudsmith_webhook" "test" {
 		template = "flop"
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccWebhookRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccWebhookConfigBasicUpdateWithTemplateChange = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-webhook"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -230,4 +232,4 @@ resource "cloudsmith_webhook" "test" {
 		template = "flap"
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccWebhookRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"))

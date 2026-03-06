@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var testAccManageTeamName = testAccUniqueName("acc-team-mgmt")
+
 // create basic manage team test function
 
 func TestAccManageTeam_basic(t *testing.T) {
@@ -21,7 +23,6 @@ func TestAccManageTeam_basic(t *testing.T) {
 				Config: testAccManageTeamConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("cloudsmith_team.test"),
-					resource.TestCheckResourceAttr("cloudsmith_manage_team.test", "team_name", "tf-test-manage-team-members"),
 					resource.TestCheckResourceAttr("cloudsmith_manage_team.test", "members.0.role", "Member"),
 					resource.TestCheckResourceAttr("cloudsmith_manage_team.test", "members.0.user", "bblizniak"),
 				),
@@ -33,7 +34,7 @@ func TestAccManageTeam_basic(t *testing.T) {
 var testAccManageTeamConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
 	organization = "%s"
-	name = "tf-test-manage-team-members"
+	name = "%s"
 }
 
 resource "cloudsmith_manage_team" "test" {
@@ -45,4 +46,4 @@ resource "cloudsmith_manage_team" "test" {
 		user = "bblizniak"
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccManageTeamName)

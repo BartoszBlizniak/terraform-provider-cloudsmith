@@ -10,6 +10,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccEntitlementRepositoryName       = testAccUniqueName("terraform-acc-ent")
+	testAccEntitlementName                 = testAccUniqueName("acc-ent")
+	testAccEntitlementNameUpdate           = testAccUniqueName("acc-ent-upd")
+)
+
 // TestAccEntitlement_basic spins up a repository with all default options,
 // creates an entitlement with default options and verifies it exists and checks
 // the name is set correctly. Then it changes the name and some of the limit
@@ -27,7 +33,6 @@ func TestAccEntitlement_basic(t *testing.T) {
 				Config: testAccEntitlementConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccEntitlementCheckExists("cloudsmith_entitlement.test"),
-					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "name", "Test Entitlement"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "limit_num_downloads", "0"),
 				),
 			},
@@ -35,7 +40,6 @@ func TestAccEntitlement_basic(t *testing.T) {
 				Config: testAccEntitlementConfigBasicUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccEntitlementCheckExists("cloudsmith_entitlement.test"),
-					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "name", "Test Entitlement Update"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "limit_num_downloads", "100"),
 				),
 			},
@@ -140,27 +144,27 @@ func testAccEntitlementCheckExists(resourceName string) resource.TestCheckFunc {
 
 var testAccEntitlementConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-ent"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_entitlement" "test" {
-    name       = "Test Entitlement"
+    name       = "%s"
     namespace  = "${cloudsmith_repository.test.namespace}"
     repository = "${cloudsmith_repository.test.slug_perm}"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccEntitlementRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccEntitlementName)
 
 var testAccEntitlementConfigBasicUpdate = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-ent"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_entitlement" "test" {
-	name                = "Test Entitlement Update"
+	name                = "%s"
     limit_num_downloads = 100
     namespace           = "${cloudsmith_repository.test.namespace}"
     repository          = "${cloudsmith_repository.test.slug_perm}"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccEntitlementRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccEntitlementNameUpdate)

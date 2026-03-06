@@ -11,6 +11,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccRepositoryName       = testAccUniqueName("terraform-acc-repo")
+	testAccRepositoryNameUpdate = testAccUniqueName("terraform-acc-repo-upd")
+)
+
 // TestAccRepository_basic spins up a repository with all default options,
 // verifies it exists and checks the name is set correctly. Then it changes the
 // name, and verifies it's been set correctly before tearing down the resource
@@ -150,39 +155,39 @@ func testAccRepositoryCheckExists(resourceName string) resource.TestCheckFunc {
 
 var testAccRepositoryConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test"
+	name      = "%s"
 	namespace = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccRepositoryConfigBasicUpdateName = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-update"
+	name      = "%s"
 	namespace = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccRepositoryConfigBasicInvalidProp = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-update"
+	name      = "%s"
 	namespace = "%s"
 
 	copy_packages = "Sudo"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccRepositoryConfigBasicInvalidBroadcastState = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-update"
+	name      = "%s"
 	namespace = "%s"
 
 	broadcast_state = "InvalidState"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccRepositoryConfigBasicUpdateProps = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-update"
+	name      = "%s"
 	namespace = "%s"
 
 	contextual_auth_realm         = false
@@ -194,4 +199,4 @@ resource "cloudsmith_repository" "test" {
 	use_entitlements_privilege = "Admin"
 	broadcast_state = "Private"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))

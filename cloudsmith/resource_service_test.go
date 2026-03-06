@@ -11,6 +11,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccServiceName              = testAccUniqueName("acc-svc")
+	testAccServiceNameUpdate        = testAccUniqueName("acc-svc-upd")
+	testAccServiceNameNoAPIKey      = testAccUniqueName("acc-svc-nokey")
+	testAccTeamSvcName              = testAccUniqueName("acc-team-svc")
+	testAccTeamSvcName2             = testAccUniqueName("acc-team-svc2")
+)
+
 // TestAccService_basic spins up a service with all default options, verifies it
 // exists and checks the attributes. Then it performs some updates and verifies
 // them before tearing down the resources and verifying deletion.
@@ -165,34 +173,34 @@ func testAccServiceCheckExists(resourceName string) resource.TestCheckFunc {
 
 var testAccServiceConfigNoAPIKey = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
-	name            = "TF Test Service No API Key"
+	name            = "%s"
 	organization    = "%s"
 	store_api_key  = false
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccServiceNameNoAPIKey, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service cs"
+	name         = "%s"
 	organization = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasicUpdateName = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service Updated"
+	name         = "%s"
 	organization = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccServiceNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasicAddToTeam = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team Svc"
+	name         = "%s"
 	organization = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service cs"
+	name         = "%s"
 	organization = "%s"
 	role         = "Manager"
 
@@ -200,21 +208,21 @@ resource "cloudsmith_service" "test" {
 		slug = cloudsmith_team.test.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamSvcName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasicAddAnotherToTeam = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team Svc"
+	name         = "%s"
 	organization = "%s"
 }
 
 resource "cloudsmith_team" "test2" {
-	name         = "TF Test Team Svc 2"
+	name         = "%s"
 	organization = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service cs"
+	name         = "%s"
 	organization = "%s"
 	role         = "Manager"
 
@@ -227,4 +235,4 @@ resource "cloudsmith_service" "test" {
 		slug = cloudsmith_team.test2.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamSvcName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccTeamSvcName2, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"))

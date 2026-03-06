@@ -11,6 +11,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccLicensePolicyName       = testAccUniqueName("acc-policy")
+	testAccLicensePolicyNameUpdate = testAccUniqueName("acc-policy-upd")
+)
+
 func TestAccOrgLicensePolicy_basic(t *testing.T) {
 	t.Parallel()
 
@@ -128,25 +133,25 @@ func testOrgLicensePolicyCheckExists(resourceName string) resource.TestCheckFunc
 
 var testOrgLicensePolicyBasic = fmt.Sprintf(`
 resource "cloudsmith_license_policy" "test" {
-	name             = "TF Test Policy"
+	name             = "%s"
 	description      = "TF Test Policy Description"
 	spdx_identifiers = ["Apache-1.0"]
 	organization     = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccLicensePolicyName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testOrgLicensePolicyBasicInvalidSpdx = fmt.Sprintf(`
 resource "cloudsmith_license_policy" "test" {
-	name             = "TF Test Policy"
+	name             = "%s"
 	description      = "TF Test Policy Description"
 	spdx_identifiers = ["Not a spdx"]
 	organization     = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccLicensePolicyName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testOrgLicensePolicyBasicUpdate = fmt.Sprintf(`
 resource "cloudsmith_license_policy" "test" {
-	name                    = "TF Test Policy Updated"
+	name                    = "%s"
 	description             = "TF Test Policy Description Updated"
 	spdx_identifiers        = ["Apache-2.0"]
 	on_violation_quarantine = true
@@ -154,4 +159,4 @@ resource "cloudsmith_license_policy" "test" {
 	package_query_string    = "format:python AND downloads:>50"
 	organization            = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccLicensePolicyNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))

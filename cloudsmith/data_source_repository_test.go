@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var testAccDataSourceRepositoryName = testAccUniqueName("terraform-acc-ds")
+
 // TestAccRepository_data spins up a repository with all default options,
 // verifies it exists, then reads the same repository using a data source and
 // verifies that the expected fields are set with default values.
@@ -41,12 +43,12 @@ func TestAccRepository_data(t *testing.T) {
 
 var testAccRepositoryData = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-ds"
+	name      = "%s"
 	namespace = "%s"
 }
 
 data "cloudsmith_repository" "test" {
-	identifier = "terraform-acc-test-ds"
+	identifier = "%s"
 	namespace  = cloudsmith_repository.test.namespace
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccDataSourceRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccDataSourceRepositoryName)
