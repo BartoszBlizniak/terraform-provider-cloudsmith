@@ -3,36 +3,70 @@ package cloudsmith
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/cloudsmith-io/cloudsmith-api-go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// waitForSAMLAuthEnabled polls until the SAML auth enabled state matches wantEnabled or times out.
-func waitForSAMLAuthEnabled(pc *providerConfig, organization string, wantEnabled bool, timeoutSec int) error {
-	deadline := time.Now().Add(time.Duration(timeoutSec) * time.Second)
-	for {
+type samlAuthExpectedState struct {
+	enabled        bool
+	enforced       bool
+	metadataInline string
+	metadataURL    string
+}
+
+func waitForSAMLAuthState(pc *providerConfig, organization string, expected samlAuthExpectedState) error {
+	checkerFunc := func() error {
 		samlAuth, resp, err := pc.APIClient.OrgsApi.OrgsSamlAuthenticationRead(pc.Auth, organization).Execute()
 		if resp != nil {
-			defer resp.Body.Close()
+			_ = resp.Body.Close()
 		}
-		if err == nil {
-			if samlAuth.GetSamlAuthEnabled() == wantEnabled {
-				return nil
-			}
+		if err != nil {
+			return errKeepWaiting
 		}
-		if time.Now().After(deadline) {
-			return fmt.Errorf("timeout waiting for SAML auth enabled=%v", wantEnabled)
+		if samlAuthMatchesExpected(samlAuth, expected) {
+			return nil
 		}
-		time.Sleep(1 * time.Second)
+		return errKeepWaiting
 	}
+	return waiter(checkerFunc, defaultUpdateTimeout, defaultUpdateInterval)
+}
+
+func samlAuthMatchesExpected(samlAuth *cloudsmith.OrganizationSAMLAuth, expected samlAuthExpectedState) bool {
+	if samlAuth.GetSamlAuthEnabled() != expected.enabled {
+		return false
+	}
+	if samlAuth.GetSamlAuthEnforced() != expected.enforced {
+		return false
+	}
+
+	actualInline := strings.TrimSpace(samlAuth.GetSamlMetadataInline())
+	actualURL := ""
+	if url, hasURL := samlAuth.GetSamlMetadataUrlOk(); hasURL && url != nil {
+		actualURL = strings.TrimSpace(*url)
+	}
+
+	return actualInline == expected.metadataInline && actualURL == expected.metadataURL
+}
+
+func expectedSAMLAuthState(d *schema.ResourceData) samlAuthExpectedState {
+	expected := samlAuthExpectedState{
+		enabled:  d.Get("saml_auth_enabled").(bool),
+		enforced: d.Get("saml_auth_enforced").(bool),
+	}
+
+	if inline, ok := d.GetOk("saml_metadata_inline"); ok {
+		expected.metadataInline = strings.TrimSpace(inline.(string))
+	}
+	if url, ok := d.GetOk("saml_metadata_url"); ok {
+		expected.metadataURL = strings.TrimSpace(url.(string))
+	}
+
+	return expected
 }
 
 // samlAuthCreate handles the creation of a new SAML authentication configuration
@@ -51,9 +85,8 @@ func samlAuthCreate(ctx context.Context, d *schema.ResourceData, m interface{}) 
 		return diag.FromErr(handleSAMLAuthError(err, resp, "creating SAML authentication"))
 	}
 
-	d.SetId(generateSAMLAuthID(organization, result))
-	// Wait for the backend to reflect the enabled state
-	if err := waitForSAMLAuthEnabled(pc, organization, d.Get("saml_auth_enabled").(bool), 30); err != nil {
+	d.SetId(generateSAMLAuthID(organization))
+	if err := waitForSAMLAuthState(pc, organization, expectedSAMLAuthState(d)); err != nil {
 		return diag.FromErr(err)
 	}
 	return samlAuthRead(ctx, d, m)
@@ -74,7 +107,7 @@ func samlAuthRead(ctx context.Context, d *schema.ResourceData, m interface{}) di
 	}
 
 	d.Set("organization", organization)
-	d.SetId(generateSAMLAuthID(organization, samlAuth))
+	d.SetId(generateSAMLAuthID(organization))
 
 	if err := setSAMLAuthFields(d, organization, samlAuth); err != nil {
 		return diag.FromErr(err)
@@ -98,8 +131,7 @@ func samlAuthUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) 
 	if err != nil {
 		return diag.FromErr(handleSAMLAuthError(err, resp, "updating SAML authentication"))
 	}
-	// Wait for the backend to reflect the enabled state
-	if err := waitForSAMLAuthEnabled(pc, organization, d.Get("saml_auth_enabled").(bool), 30); err != nil {
+	if err := waitForSAMLAuthState(pc, organization, expectedSAMLAuthState(d)); err != nil {
 		return diag.FromErr(err)
 	}
 	return samlAuthRead(ctx, d, m)
@@ -122,8 +154,7 @@ func samlAuthDelete(ctx context.Context, d *schema.ResourceData, m interface{}) 
 		return diag.FromErr(handleSAMLAuthError(err, resp, "deleting SAML authentication"))
 	}
 
-	// Wait for the backend to reflect the disabled state
-	if err := waitForSAMLAuthEnabled(pc, organization, false, 30); err != nil {
+	if err := waitForSAMLAuthState(pc, organization, samlAuthExpectedState{}); err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId("")
@@ -144,7 +175,7 @@ func samlAuthImport(ctx context.Context, d *schema.ResourceData, m interface{}) 
 	}
 
 	d.Set("organization", organization)
-	d.SetId(generateSAMLAuthID(organization, samlAuth))
+	d.SetId(generateSAMLAuthID(organization))
 
 	if err := setSAMLAuthFields(d, organization, samlAuth); err != nil {
 		return nil, err
@@ -212,7 +243,6 @@ func setSAMLAuthFields(d *schema.ResourceData, organization string, samlAuth *cl
 			return err
 		}
 	} else {
-		// Neither present, clear both
 		if err := setField("saml_metadata_inline", ""); err != nil {
 			return err
 		}
@@ -224,26 +254,10 @@ func setSAMLAuthFields(d *schema.ResourceData, organization string, samlAuth *cl
 	return nil
 }
 
-// generateSAMLAuthID creates a unique identifier for the SAML authentication resource
-func generateSAMLAuthID(organization string, samlAuth *cloudsmith.OrganizationSAMLAuth) string {
-	data := organization
-
-	if samlAuth != nil {
-		data += fmt.Sprintf("-%t", samlAuth.GetSamlAuthEnabled())
-		data += fmt.Sprintf("-%t", samlAuth.GetSamlAuthEnforced())
-
-		if url, hasURL := samlAuth.GetSamlMetadataUrlOk(); url != nil && hasURL {
-			data += fmt.Sprintf("-%s", *url)
-		}
-
-		// Include inline metadata if present
-		if metadata := samlAuth.GetSamlMetadataInline(); metadata != "" {
-			data += fmt.Sprintf("-%s", metadata)
-		}
-	}
-
-	hash := sha256.Sum256([]byte(data))
-	return hex.EncodeToString(hash[:])
+// generateSAMLAuthID creates a stable identifier for the SAML authentication resource.
+// SAML auth is a singleton per organization, so the organization slug is the natural ID.
+func generateSAMLAuthID(organization string) string {
+	return organization
 }
 
 // handleSAMLAuthError creates formatted error messages for API operations

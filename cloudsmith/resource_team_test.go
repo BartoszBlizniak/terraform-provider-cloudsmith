@@ -11,6 +11,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccTeamName       = testAccUniqueName("acc-team")
+	testAccTeamNameUpdate = testAccUniqueName("acc-team-upd")
+)
+
 // TestAccTeam_basic spins up a team with all default options,
 // verifies it exists and checks the name is set correctly. Then it changes the
 // name, and verifies it's been set correctly before tearing down the resource
@@ -23,9 +28,9 @@ func TestAccTeam_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccTeamCheckDestroy("cloudsmith_team.test"),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccTeamCheckDestroy("cloudsmith_team.test"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamConfigBasic,
@@ -83,7 +88,13 @@ func testAccTeamCheckDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		req := pc.APIClient.OrgsApi.OrgsTeamsRead(pc.Auth, os.Getenv("CLOUDSMITH_NAMESPACE"), resourceState.Primary.ID)
 		_, resp, err := pc.APIClient.OrgsApi.OrgsTeamsReadExecute(req)
@@ -110,7 +121,13 @@ func testAccTeamCheckExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		req := pc.APIClient.OrgsApi.OrgsTeamsRead(pc.Auth, os.Getenv("CLOUDSMITH_NAMESPACE"), resourceState.Primary.ID)
 		_, resp, err := pc.APIClient.OrgsApi.OrgsTeamsReadExecute(req)
@@ -125,30 +142,30 @@ func testAccTeamCheckExists(resourceName string) resource.TestCheckFunc {
 
 var testAccTeamConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team"
+	name         = "%s"
 	organization = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccTeamConfigBasicUpdateName = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team Updated"
+	name         = "%s"
 	organization = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccTeamConfigBasicInvalidProp = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team Updated"
+	name         = "%s"
 	organization = "%s"
 
 	visibility = "Nope"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccTeamConfigBasicUpdateProps = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team Updated"
+	name         = "%s"
 	organization = "%s"
 
 	description = "I am the team, coo coo ca choo"
@@ -156,4 +173,4 @@ resource "cloudsmith_team" "test" {
 	visibility  = "Visible"
 
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))

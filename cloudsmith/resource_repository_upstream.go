@@ -191,6 +191,12 @@ func resourceRepositoryUpstreamCreate(d *schema.ResourceData, m interface{}) err
 	priority := optionalInt64(d, Priority)
 	upstreamUrl := requiredString(d, UpstreamUrl)
 	verifySsl := optionalBool(d, VerifySsl)
+	expectedIsActive := isActive
+	if expectedIsActive == nil && upstreamType != Docker {
+		// Cloudsmith creates non-Docker upstreams in a short-lived inactive state
+		// while the initial index completes, then flips them to active.
+		expectedIsActive = cloudsmith.PtrBool(true)
+	}
 
 	var upstream Upstream
 	var resp *http.Response
@@ -583,6 +589,9 @@ func resourceRepositoryUpstreamCreate(d *schema.ResourceData, m interface{}) err
 				return errKeepWaiting
 			}
 			return err
+		}
+		if expectedIsActive != nil && upstream.GetIsActive() != *expectedIsActive {
+			return errKeepWaiting
 		}
 		return nil
 	}

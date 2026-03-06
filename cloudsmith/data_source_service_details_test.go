@@ -8,17 +8,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var testAccDataSourceServiceDetailsName = testAccUniqueName("acc-svc-details")
+
 // TestAccDataSourceServiceDetails_basic validates retrieval of a single service's details.
 func TestAccDataSourceServiceDetails_basic(t *testing.T) {
 	t.Parallel()
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceServiceDetailsConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.cloudsmith_service_details.test", "name", "terraform-acc-test-service-details"),
+					resource.TestCheckResourceAttr("data.cloudsmith_service_details.test", "name", testAccDataSourceServiceDetailsName),
 					resource.TestCheckResourceAttr("data.cloudsmith_service_details.test", "role", "Member"),
 					resource.TestCheckResourceAttrSet("data.cloudsmith_service_details.test", "slug"),
 					resource.TestCheckResourceAttrSet("data.cloudsmith_service_details.test", "created_at"),
@@ -33,7 +35,7 @@ func TestAccDataSourceServiceDetails_basic(t *testing.T) {
 func testAccDataSourceServiceDetailsConfig() string {
 	return fmt.Sprintf(`
 resource "cloudsmith_service" "example" {
-  name         = "terraform-acc-test-service-details"
+  name         = "%s"
   organization = "%s"
   role         = "Member"
 }
@@ -43,5 +45,5 @@ data "cloudsmith_service_details" "test" {
   service      = cloudsmith_service.example.slug
   depends_on   = [cloudsmith_service.example]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccDataSourceServiceDetailsName, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
 }

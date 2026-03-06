@@ -3,10 +3,10 @@ package cloudsmith
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/cloudsmith-io/cloudsmith-api-go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -181,7 +181,65 @@ func oidcUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 	d.SetId(oidc.GetSlugPerm())
 
-	checkerFunc := func() error { time.Sleep(5 * time.Second); return nil }
+	expectedEnabled := d.Get("enabled").(bool)
+	expectedName := d.Get("name").(string)
+	expectedProviderURL := d.Get("provider_url").(string)
+	expectedClaims := d.Get("claims").(map[string]interface{})
+	expectedMappingClaim := ""
+	expectedServiceAccounts := []string{}
+	expectedDynamicMappings := []string{}
+
+	if hasMappingClaim || hasDynMappings {
+		if hasMappingClaim && mappingClaim.(string) != "" {
+			expectedMappingClaim = mappingClaim.(string)
+		}
+		if hasDynMappings {
+			expectedDynamicMappings = normalizeDynamicMappingSet(dynMappingsRaw.(*schema.Set))
+		}
+	} else if hasServiceAccounts {
+		expectedServiceAccounts = normalizeStrings(convertInterfaceListToStrings(svcAcctsRaw.([]interface{})))
+	}
+
+	checkerFunc := func() error {
+		req := pc.APIClient.OrgsApi.OrgsOpenidConnectRead(pc.Auth, namespace, d.Id())
+		current, resp, readErr := pc.APIClient.OrgsApi.OrgsOpenidConnectReadExecute(req)
+		if readErr != nil {
+			if is404(resp) {
+				return errKeepWaiting
+			}
+			return readErr
+		}
+
+		if current.GetEnabled() != expectedEnabled {
+			return errKeepWaiting
+		}
+		if current.GetName() != expectedName {
+			return errKeepWaiting
+		}
+		if current.GetProviderUrl() != expectedProviderURL {
+			return errKeepWaiting
+		}
+		if !reflect.DeepEqual(current.GetClaims(), expectedClaims) {
+			return errKeepWaiting
+		}
+
+		if oidcMappingClaim(current) != expectedMappingClaim {
+			return errKeepWaiting
+		}
+		if !reflect.DeepEqual(normalizeStrings(current.GetServiceAccounts()), expectedServiceAccounts) {
+			return errKeepWaiting
+		}
+
+		currentMappings, mapErr := retrieveAllDynamicMappings(pc, namespace, d.Id())
+		if mapErr != nil {
+			return mapErr
+		}
+		if !reflect.DeepEqual(normalizeDynamicMappings(currentMappings), expectedDynamicMappings) {
+			return errKeepWaiting
+		}
+
+		return nil
+	}
 	if err := waiter(checkerFunc, defaultUpdateTimeout, defaultUpdateInterval); err != nil {
 		return fmt.Errorf("error waiting for OIDC config (%s) to be updated: %w", d.Id(), err)
 	}
@@ -329,6 +387,62 @@ func retrieveAllDynamicMappings(pc *providerConfig, namespace, slugPerm string) 
 		page++
 	}
 	return result, nil
+}
+
+func oidcMappingClaim(oidc *cloudsmith.ProviderSettings) string {
+	if oidc == nil {
+		return ""
+	}
+
+	if getter, ok := any(oidc).(interface{ GetMappingClaimOk() (*string, bool) }); ok {
+		if value, ok := getter.GetMappingClaimOk(); ok && value != nil {
+			return *value
+		}
+	}
+
+	return ""
+}
+
+func normalizeStrings(in []string) []string {
+	if len(in) == 0 {
+		return []string{}
+	}
+
+	out := append([]string(nil), in...)
+	sort.Strings(out)
+	return out
+}
+
+func normalizeDynamicMappingSet(set *schema.Set) []string {
+	return normalizeDynamicMappingObjects(buildDynamicMappingObjectsFromSet(set))
+}
+
+func normalizeDynamicMappingObjects(in []cloudsmith.DynamicMapping) []string {
+	if len(in) == 0 {
+		return []string{}
+	}
+
+	out := make([]string, 0, len(in))
+	for _, mapping := range in {
+		out = append(out, fmt.Sprintf("%s=%s", mapping.GetClaimValue(), mapping.GetServiceAccount()))
+	}
+	sort.Strings(out)
+	return out
+}
+
+func normalizeDynamicMappings(in []map[string]interface{}) []string {
+	if len(in) == 0 {
+		return []string{}
+	}
+
+	out := make([]string, 0, len(in))
+	for _, mapping := range in {
+		claimValue, _ := mapping["claim_value"].(string)
+		serviceAccount, _ := mapping["service_account"].(string)
+		out = append(out, fmt.Sprintf("%s=%s", claimValue, serviceAccount))
+	}
+	sort.Strings(out)
+	return out
 }
 
 // Helper utilities

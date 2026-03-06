@@ -19,9 +19,12 @@ const InitialCountryCodeAllow string = "BV"
 const UpdatedCountryCodeAllow string = "FO"
 const InitialCountryCodeDeny string = "CX"
 const UpdatedCountryCodeDeny string = "CK"
+
+var testAccRepositoryGeoIpRulesName = testAccUniqueName("terraform-acc-geo-ip")
+
 const configTemplateWithoutRules string = `
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-repository-geo-ip-rules"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -32,9 +35,8 @@ resource "cloudsmith_repository_geo_ip_rules" "test" {
 `
 const configTemplateWithRules string = `
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-repository-geo-ip-rules"
+	name      = "%s"
 	namespace = "%s"
-}
 
 resource "cloudsmith_repository_geo_ip_rules" "test" {
     namespace          = "${resource.cloudsmith_repository.test.namespace}"
@@ -44,12 +46,12 @@ resource "cloudsmith_repository_geo_ip_rules" "test" {
     country_code_allow = ["%s"]
     country_code_deny  = ["%s"]
 }
-`
+` // nolint:lll
 
 var namespace = os.Getenv("CLOUDSMITH_NAMESPACE")
-var testAccRepositoryGeoIpRulesConfigCreate = fmt.Sprintf(configTemplateWithRules, namespace, InitialCidrAllow, InitialCidrDeny, InitialCountryCodeAllow, InitialCountryCodeDeny)
-var testAccRepositoryGeoIpRulesConfigUpdate = fmt.Sprintf(configTemplateWithRules, namespace, UpdatedCidrAllow, UpdatedCidrDeny, UpdatedCountryCodeAllow, UpdatedCountryCodeDeny)
-var testAccRepositoryGeoIpRulesConfigDefault = fmt.Sprintf(configTemplateWithoutRules, namespace)
+var testAccRepositoryGeoIpRulesConfigCreate = fmt.Sprintf(configTemplateWithRules, testAccRepositoryGeoIpRulesName, namespace, InitialCidrAllow, InitialCidrDeny, InitialCountryCodeAllow, InitialCountryCodeDeny)
+var testAccRepositoryGeoIpRulesConfigUpdate = fmt.Sprintf(configTemplateWithRules, testAccRepositoryGeoIpRulesName, namespace, UpdatedCidrAllow, UpdatedCidrDeny, UpdatedCountryCodeAllow, UpdatedCountryCodeDeny)
+var testAccRepositoryGeoIpRulesConfigDefault = fmt.Sprintf(configTemplateWithoutRules, testAccRepositoryGeoIpRulesName, namespace)
 
 // TestAccRepositoryGeoIpRules_basic spins up a repository with all default options,
 // creates a set of geo/ip rules for the repository and verifies they exist. Then it
@@ -59,9 +61,9 @@ func TestAccRepositoryGeoIpRules_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryGeoIpRulesCheckDestroy(ResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryGeoIpRulesCheckDestroy(ResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryGeoIpRulesConfigCreate,
@@ -110,7 +112,13 @@ func testAccRepositoryGeoIpRulesCheckDestroy(resourceName string) resource.TestC
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		repository := resourceState.Primary.Attributes["repository"]
 
@@ -148,7 +156,13 @@ func testAccRepositoryGeoIpRulesCheckExists(resourceName string, expectedCidrAll
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		repository := resourceState.Primary.Attributes["repository"]
 

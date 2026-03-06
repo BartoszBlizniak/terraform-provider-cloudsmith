@@ -8,14 +8,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var (
+	testAccDataSourceRepositoryPrivilegesRepositoryName = testAccUniqueName("terraform-acc-read-privs")
+	testAccDataSourceServicePrivsName                   = testAccUniqueName("acc-svc-dat-privs")
+)
+
 // TestAccDataSourceRepositoryPrivileges_basic tests the basic functionality of the data source.
 func TestAccDataSourceRepositoryPrivileges_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryCheckDestroy("cloudsmith_repository.test"),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryCheckDestroy("cloudsmith_repository.test"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceRepositoryPrivilegesConfigBasic,
@@ -29,12 +34,12 @@ func TestAccDataSourceRepositoryPrivileges_basic(t *testing.T) {
 
 var testAccDataSourceRepositoryPrivilegesConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-read-privs"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service Data Privs"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 	role         = "Member"
 }
@@ -62,4 +67,4 @@ data "cloudsmith_repository_privileges" "test_data" {
 	repository   = cloudsmith_repository_privileges.test.repository
 	depends_on = [cloudsmith_repository.test]
   }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccDataSourceRepositoryPrivilegesRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccDataSourceServicePrivsName)

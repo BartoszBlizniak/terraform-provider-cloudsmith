@@ -11,6 +11,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccServiceName              = testAccUniqueName("acc-svc")
+	testAccServiceNameUpdate        = testAccUniqueName("acc-svc-upd")
+	testAccServiceNameNoAPIKey      = testAccUniqueName("acc-svc-nokey")
+	testAccTeamSvcName              = testAccUniqueName("acc-team-svc")
+	testAccTeamSvcName2             = testAccUniqueName("acc-team-svc2")
+)
+
 // TestAccService_basic spins up a service with all default options, verifies it
 // exists and checks the attributes. Then it performs some updates and verifies
 // them before tearing down the resources and verifying deletion.
@@ -23,9 +31,9 @@ func TestAccService_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccServiceCheckDestroy("cloudsmith_service.test"),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccServiceCheckDestroy("cloudsmith_service.test"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccServiceConfigBasic,
@@ -111,7 +119,13 @@ func testAccServiceCheckDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		req := pc.APIClient.OrgsApi.OrgsServicesRead(pc.Auth, os.Getenv("CLOUDSMITH_NAMESPACE"), resourceState.Primary.ID)
 		_, resp, err := pc.APIClient.OrgsApi.OrgsServicesReadExecute(req)
@@ -138,7 +152,13 @@ func testAccServiceCheckExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		req := pc.APIClient.OrgsApi.OrgsServicesRead(pc.Auth, os.Getenv("CLOUDSMITH_NAMESPACE"), resourceState.Primary.ID)
 		_, resp, err := pc.APIClient.OrgsApi.OrgsServicesReadExecute(req)
@@ -153,34 +173,34 @@ func testAccServiceCheckExists(resourceName string) resource.TestCheckFunc {
 
 var testAccServiceConfigNoAPIKey = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
-	name            = "TF Test Service No API Key"
+	name            = "%s"
 	organization    = "%s"
 	store_api_key  = false
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccServiceNameNoAPIKey, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service cs"
+	name         = "%s"
 	organization = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasicUpdateName = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service Updated"
+	name         = "%s"
 	organization = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccServiceNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasicAddToTeam = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team Svc"
+	name         = "%s"
 	organization = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service cs"
+	name         = "%s"
 	organization = "%s"
 	role         = "Manager"
 
@@ -188,21 +208,21 @@ resource "cloudsmith_service" "test" {
 		slug = cloudsmith_team.test.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamSvcName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccServiceConfigBasicAddAnotherToTeam = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
-	name         = "TF Test Team Svc"
+	name         = "%s"
 	organization = "%s"
 }
 
 resource "cloudsmith_team" "test2" {
-	name         = "TF Test Team Svc 2"
+	name         = "%s"
 	organization = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service cs"
+	name         = "%s"
 	organization = "%s"
 	role         = "Manager"
 
@@ -215,4 +235,4 @@ resource "cloudsmith_service" "test" {
 		slug = cloudsmith_team.test2.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccTeamSvcName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccTeamSvcName2, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"))

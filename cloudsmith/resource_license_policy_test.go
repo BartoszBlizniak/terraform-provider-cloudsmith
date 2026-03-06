@@ -11,13 +11,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccLicensePolicyName       = testAccUniqueName("acc-policy")
+	testAccLicensePolicyNameUpdate = testAccUniqueName("acc-policy-upd")
+)
+
 func TestAccOrgLicensePolicy_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testOrgLicensePolicyCheckDestroy("cloudsmith_license_policy.test"),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testOrgLicensePolicyCheckDestroy("cloudsmith_license_policy.test"),
 		Steps: []resource.TestStep{
 			{
 				Config: testOrgLicensePolicyBasic,
@@ -74,7 +79,13 @@ func testOrgLicensePolicyCheckDestroy(resourceName string) resource.TestCheckFun
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		req := pc.APIClient.OrgsApi.OrgsLicensePolicyRead(pc.Auth, os.Getenv("CLOUDSMITH_NAMESPACE"), resourceState.Primary.ID)
 		_, resp, err := pc.APIClient.OrgsApi.OrgsLicensePolicyReadExecute(req)
@@ -101,7 +112,13 @@ func testOrgLicensePolicyCheckExists(resourceName string) resource.TestCheckFunc
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		req := pc.APIClient.OrgsApi.OrgsLicensePolicyRead(pc.Auth, os.Getenv("CLOUDSMITH_NAMESPACE"), resourceState.Primary.ID)
 		_, resp, err := pc.APIClient.OrgsApi.OrgsLicensePolicyReadExecute(req)
@@ -116,25 +133,25 @@ func testOrgLicensePolicyCheckExists(resourceName string) resource.TestCheckFunc
 
 var testOrgLicensePolicyBasic = fmt.Sprintf(`
 resource "cloudsmith_license_policy" "test" {
-	name             = "TF Test Policy"
+	name             = "%s"
 	description      = "TF Test Policy Description"
 	spdx_identifiers = ["Apache-1.0"]
 	organization     = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccLicensePolicyName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testOrgLicensePolicyBasicInvalidSpdx = fmt.Sprintf(`
 resource "cloudsmith_license_policy" "test" {
-	name             = "TF Test Policy"
+	name             = "%s"
 	description      = "TF Test Policy Description"
 	spdx_identifiers = ["Not a spdx"]
 	organization     = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccLicensePolicyName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testOrgLicensePolicyBasicUpdate = fmt.Sprintf(`
 resource "cloudsmith_license_policy" "test" {
-	name                    = "TF Test Policy Updated"
+	name                    = "%s"
 	description             = "TF Test Policy Description Updated"
 	spdx_identifiers        = ["Apache-2.0"]
 	on_violation_quarantine = true
@@ -142,4 +159,4 @@ resource "cloudsmith_license_policy" "test" {
 	package_query_string    = "format:python AND downloads:>50"
 	organization            = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccLicensePolicyNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))

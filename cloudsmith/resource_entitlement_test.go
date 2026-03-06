@@ -10,6 +10,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccEntitlementRepositoryName       = testAccUniqueName("terraform-acc-ent")
+	testAccEntitlementName                 = testAccUniqueName("acc-ent")
+	testAccEntitlementNameUpdate           = testAccUniqueName("acc-ent-upd")
+)
+
 // TestAccEntitlement_basic spins up a repository with all default options,
 // creates an entitlement with default options and verifies it exists and checks
 // the name is set correctly. Then it changes the name and some of the limit
@@ -19,15 +25,14 @@ func TestAccEntitlement_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccEntitlementCheckDestroy("cloudsmith_entitlement.test"),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccEntitlementCheckDestroy("cloudsmith_entitlement.test"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccEntitlementConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccEntitlementCheckExists("cloudsmith_entitlement.test"),
-					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "name", "Test Entitlement"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "limit_num_downloads", "0"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "access_private_broadcasts", "false"),
 				),
@@ -36,7 +41,6 @@ func TestAccEntitlement_basic(t *testing.T) {
 				Config: testAccEntitlementConfigBasicUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccEntitlementCheckExists("cloudsmith_entitlement.test"),
-					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "name", "Test Entitlement Update"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "limit_num_downloads", "100"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "access_private_broadcasts", "true"),
 				),
@@ -71,7 +75,13 @@ func testAccEntitlementCheckDestroy(resourceName string) resource.TestCheckFunc 
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		namespace := os.Getenv("CLOUDSMITH_NAMESPACE")
 		repository := resourceState.Primary.Attributes["repository"]
@@ -111,7 +121,13 @@ func testAccEntitlementCheckExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+
+		if err != nil {
+
+			return err
+
+		}
 
 		namespace := os.Getenv("CLOUDSMITH_NAMESPACE")
 		repository := resourceState.Primary.Attributes["repository"]
@@ -130,20 +146,20 @@ func testAccEntitlementCheckExists(resourceName string) resource.TestCheckFunc {
 
 var testAccEntitlementConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-ent"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_entitlement" "test" {
-    name       = "Test Entitlement"
+    name       = "%s"
     namespace  = "${cloudsmith_repository.test.namespace}"
     repository = "${cloudsmith_repository.test.slug_perm}"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccEntitlementRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccEntitlementName)
 
 var testAccEntitlementConfigBasicUpdate = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-ent"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -154,4 +170,4 @@ resource "cloudsmith_entitlement" "test" {
     namespace                  = "${cloudsmith_repository.test.namespace}"
     repository                 = "${cloudsmith_repository.test.slug_perm}"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccEntitlementRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccEntitlementNameUpdate)

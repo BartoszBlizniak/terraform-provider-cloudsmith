@@ -10,6 +10,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccRepositoryPrivilegesRepositoryName = testAccUniqueName("terraform-acc-privs")
+	testAccServicePrivsName                   = testAccUniqueName("acc-svc-privs")
+	testAccTeamPrivsName1                     = testAccUniqueName("acc-team-privs1")
+	testAccTeamPrivsName2                     = testAccUniqueName("acc-team-privs2")
+)
+
 // TestAccRepositoryPrivileges_basic spins up a repository with default options,
 // creates a service account and a couple of teams, assigning and modifying
 // their permissions before tearing down and verifying deletion.
@@ -17,9 +24,9 @@ func TestAccRepositoryPrivileges_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryCheckDestroy("cloudsmith_repository.test"),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryCheckDestroy("cloudsmith_repository.test"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPrivilegesConfigBasic,
@@ -73,12 +80,12 @@ func TestAccRepositoryPrivileges_basic(t *testing.T) {
 
 var testAccRepositoryPrivilegesConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-privs"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service Privs"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 	role         = "Member"
 }
@@ -100,16 +107,16 @@ resource "cloudsmith_repository_privileges" "test" {
 		slug      = data.cloudsmith_user_self.current.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryPrivilegesRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServicePrivsName)
 
 var testAccRepositoryPrivilegesConfigBasicUpdatePrivilege = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-privs"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service Privs"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 	role         = "Member"
 }
@@ -131,22 +138,22 @@ resource "cloudsmith_repository_privileges" "test" {
 		slug      = data.cloudsmith_user_self.current.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryPrivilegesRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServicePrivsName)
 
 var testAccRepositoryPrivilegesConfigBasicAddTeam = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-privs"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service Privs"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 	role         = "Member"
 }
 
 resource "cloudsmith_team" "test_1" {
-	name         = "TF Test Team Privs 1"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 }
 
@@ -164,27 +171,27 @@ resource "cloudsmith_repository_privileges" "test" {
 		slug      = cloudsmith_team.test_1.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryPrivilegesRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServicePrivsName, testAccTeamPrivsName1)
 
 var testAccRepositoryPrivilegesConfigBasicAddAnotherTeam = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-privs"
+	name      = "%s"
 	namespace = "%s"
 }
 
 resource "cloudsmith_service" "test" {
-	name         = "TF Test Service Privs"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 	role         = "Member"
 }
 
 resource "cloudsmith_team" "test_1" {
-	name         = "TF Test Team Privs 1"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 }
 
 resource "cloudsmith_team" "test_2" {
-	name         = "TF Test Team Privs 2"
+	name         = "%s"
 	organization = cloudsmith_repository.test.namespace
 }
 
@@ -207,4 +214,4 @@ resource "cloudsmith_repository_privileges" "test" {
 		slug      = cloudsmith_team.test_1.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryPrivilegesRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccServicePrivsName, testAccTeamPrivsName1, testAccTeamPrivsName2)

@@ -10,9 +10,9 @@ import (
 	"github.com/cloudsmith-io/cloudsmith-api-go"
 )
 
-func retrieveOrgMemeberListPage(pc *providerConfig, organization string, isActive bool, pageSize int64, pageCount int64) ([]cloudsmith.OrganizationMembership, int64, error) {
+func retrieveOrgMemberListPage(pc *providerConfig, organization string, isActive bool, pageSize int64, page int64) ([]cloudsmith.OrganizationMembership, int64, error) {
 	req := pc.APIClient.OrgsApi.OrgsMembersList(pc.Auth, organization)
-	req = req.Page(pageCount)
+	req = req.Page(page)
 	req = req.PageSize(pageSize)
 	req = req.IsActive(isActive)
 
@@ -27,36 +27,24 @@ func retrieveOrgMemeberListPage(pc *providerConfig, organization string, isActiv
 	return membersPage, pageTotal, nil
 }
 
-func retrieveOrgMemeberListPages(pc *providerConfig, organization string, isActive bool, pageSize int64, pageCount int64) ([]cloudsmith.OrganizationMembership, error) {
+func retrieveAllOrgMembers(pc *providerConfig, organization string, isActive bool) ([]cloudsmith.OrganizationMembership, error) {
+	const pageSize int64 = 100
+	var membersList []cloudsmith.OrganizationMembership
 
-	var pageCurrentCount int64 = 1
-
-	// A negative or zero count is assumed to mean retrieve the largest size page
-	membersList := []cloudsmith.OrganizationMembership{}
-	if pageSize == -1 || pageSize == 0 {
-		pageSize = 100
+	// Fetch the first page to discover total page count.
+	firstPage, totalPages, err := retrieveOrgMemberListPage(pc, organization, isActive, pageSize, 1)
+	if err != nil {
+		return nil, err
 	}
+	membersList = append(membersList, firstPage...)
 
-	// If no count is supplied assmumed to mean retrieve all pages
-	// we have to retreive a page to get this count
-	if pageCount == -1 || pageCount == 0 {
-		var membersPage []cloudsmith.OrganizationMembership
-		var err error
-		membersPage, pageCount, err = retrieveOrgMemeberListPage(pc, organization, isActive, pageSize, 1)
+	// Fetch remaining pages.
+	for page := int64(2); page <= totalPages; page++ {
+		membersPage, _, err := retrieveOrgMemberListPage(pc, organization, isActive, pageSize, page)
 		if err != nil {
 			return nil, err
 		}
 		membersList = append(membersList, membersPage...)
-		pageCurrentCount++
-	}
-
-	for pageCurrentCount <= pageCount {
-		membersPage, _, err := retrieveOrgMemeberListPage(pc, organization, isActive, pageSize, pageCount)
-		if err != nil {
-			return nil, err
-		}
-		membersList = append(membersList, membersPage...)
-		pageCurrentCount++
 	}
 
 	return membersList, nil
@@ -69,7 +57,7 @@ func dataSourceOrganizationMembersListRead(d *schema.ResourceData, m interface{}
 	isActive := d.Get("is_active").(bool)
 
 	// Retrieve all organization members
-	members, err := retrieveOrgMemeberListPages(pc, namespace, isActive, -1, -1)
+	members, err := retrieveAllOrgMembers(pc, namespace, isActive)
 	if err != nil {
 		return fmt.Errorf("error retrieving organization members: %s", err)
 	}
@@ -83,6 +71,14 @@ func dataSourceOrganizationMembersListRead(d *schema.ResourceData, m interface{}
 	return nil
 }
 
+// formatTimeOrEmpty safely formats a time value, returning an empty string for zero values.
+func formatTimeOrEmpty(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339)
+}
+
 // flattenOrganizationMembers maps organization members to a format suitable for the schema.
 func flattenOrganizationMembers(members []cloudsmith.OrganizationMembership) []interface{} {
 	var out []interface{}
@@ -91,8 +87,8 @@ func flattenOrganizationMembers(members []cloudsmith.OrganizationMembership) []i
 		m["email"] = member.GetEmail()
 		m["has_two_factor"] = member.GetHasTwoFactor()
 		m["is_active"] = member.GetIsActive()
-		m["joined_at"] = member.GetJoinedAt().Format(time.RFC3339) // Assuming time.Time should be formatted as a string
-		m["last_login_at"] = member.GetLastLoginAt().Format(time.RFC3339)
+		m["joined_at"] = formatTimeOrEmpty(member.GetJoinedAt())
+		m["last_login_at"] = formatTimeOrEmpty(member.GetLastLoginAt())
 		m["last_login_method"] = member.GetLastLoginMethod()
 		m["role"] = member.GetRole()
 		m["user"] = member.GetUser()

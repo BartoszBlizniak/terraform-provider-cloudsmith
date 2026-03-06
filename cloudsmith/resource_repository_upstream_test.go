@@ -18,6 +18,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccRepositoryUpstreamCargoName       = testAccUniqueName("terraform-acc-upst-cargo")
+	testAccRepositoryUpstreamCondaName       = testAccUniqueName("terraform-acc-upst-conda")
+	testAccRepositoryUpstreamDartName        = testAccUniqueName("terraform-acc-upst-dart")
+	testAccRepositoryUpstreamDebName         = testAccUniqueName("terraform-acc-upst-deb")
+	testAccRepositoryUpstreamDockerName      = testAccUniqueName("terraform-acc-upst-docker")
+	testAccRepositoryUpstreamGenericName     = testAccUniqueName("terraform-acc-upst-generic")
+	testAccRepositoryUpstreamGoName          = testAccUniqueName("terraform-acc-upst-go")
+	testAccRepositoryUpstreamHelmName        = testAccUniqueName("terraform-acc-upst-helm")
+	testAccRepositoryUpstreamHuggingfaceName = testAccUniqueName("terraform-acc-upst-hugg")
+	testAccRepositoryUpstreamHexName         = testAccUniqueName("terraform-acc-upst-hex")
+	testAccRepositoryUpstreamMavenName       = testAccUniqueName("terraform-acc-upst-maven")
+	testAccRepositoryUpstreamNpmName         = testAccUniqueName("terraform-acc-upst-npm")
+	testAccRepositoryUpstreamNugetName       = testAccUniqueName("terraform-acc-upst-nuget")
+	testAccRepositoryUpstreamPythonName      = testAccUniqueName("terraform-acc-upst-python")
+	testAccRepositoryUpstreamRpmName         = testAccUniqueName("terraform-acc-upst-rpm")
+	testAccRepositoryUpstreamRubyName        = testAccUniqueName("terraform-acc-upst-ruby")
+	testAccRepositoryUpstreamComposerName    = testAccUniqueName("terraform-acc-upst-comp")
+)
+
 func TestAccRepositoryUpstreamCargo_basic(t *testing.T) {
 	t.Parallel()
 
@@ -25,7 +45,7 @@ func TestAccRepositoryUpstreamCargo_basic(t *testing.T) {
 
 	testAccRepositoryCargoUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-cargo"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -36,11 +56,11 @@ resource "cloudsmith_repository_upstream" "crates_io" {
     upstream_type = "cargo"
     upstream_url  = "https://index.crates.io"
 }
-`, namespace)
+`, testAccRepositoryUpstreamCargoName, namespace)
 
 	testAccRepositoryCargoUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-cargo"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -59,12 +79,12 @@ resource "cloudsmith_repository_upstream" "crates_io" {
 	    upstream_url   = "https://index.crates.io"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamCargoName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(cargoUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(cargoUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryCargoUpstreamConfigBasic,
@@ -128,7 +148,7 @@ func TestAccRepositoryUpstreamConda_basic(t *testing.T) {
 
 	testAccRepositoryCondaUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-conda"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -139,11 +159,11 @@ resource "cloudsmith_repository_upstream" "conda_forge" {
     upstream_type = "conda"
     upstream_url  = "https://conda.anaconda.org/conda-forge"
 }
-`, namespace)
+`, testAccRepositoryUpstreamCondaName, namespace)
 
 	testAccRepositoryCondaUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-conda"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -158,12 +178,12 @@ resource "cloudsmith_repository_upstream" "conda_forge" {
 	    upstream_type  = "conda"
 	    upstream_url   = "https://conda.anaconda.org/conda-forge"
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamCondaName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(condaUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(condaUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryCondaUpstreamConfigBasic,
@@ -221,7 +241,7 @@ func TestAccRepositoryUpstreamDart_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-dart"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -232,11 +252,11 @@ resource "cloudsmith_repository_upstream" "pub_dev" {
     upstream_type = "dart"
     upstream_url  = "https://pub.dev"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-dart"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -255,12 +275,12 @@ resource "cloudsmith_repository_upstream" "pub_dev" {
 	    upstream_url   = "https://pub.dev"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(dartUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(dartUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -324,7 +344,7 @@ func TestAccRepositoryUpstreamDeb_basic(t *testing.T) {
 
 	var testAccRepositoryDebUpstreamConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-deb"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -337,11 +357,11 @@ resource "cloudsmith_repository_upstream" "ubuntu" {
     upstream_type   = "deb"
     upstream_url    = "http://archive.ubuntu.com/ubuntu"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDebName, namespace)
 
 	var testAccRepositoryDebUpstreamConfigUpdate = fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-deb"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -364,12 +384,12 @@ resource "cloudsmith_repository_upstream" "ubuntu" {
 	    upstream_url          = "http://archive.ubuntu.com/ubuntu"
 	    verify_ssl            = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDebName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(debUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(debUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryDebUpstreamConfigBasic,
@@ -510,7 +530,7 @@ func TestAccRepositoryUpstreamDocker_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-docker"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -524,11 +544,11 @@ resource "cloudsmith_repository_upstream" "fakedocker" {
 	auth_secret    = "SuperSecretPassword123!"
 	auth_username  = "jonny.tables"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-docker"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -550,11 +570,11 @@ resource "cloudsmith_repository_upstream" "fakedocker" {
 	    upstream_url   = "https://index.docker.io"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigCert := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-docker"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -575,9 +595,9 @@ resource "cloudsmith_repository_upstream" "fakedocker" {
 	`, namespace, certPath, keyPath)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(dockerUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(dockerUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -654,7 +674,7 @@ func TestAccRepositoryUpstreamGeneric_basic(t *testing.T) {
 
 	testAccRepositoryGenericUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-generic"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -666,11 +686,11 @@ resource "cloudsmith_repository_upstream" "gradle_distributions" {
     upstream_url    = "https://services.gradle.org"
     upstream_prefix = "distributions"
 }
-`, namespace)
+`, testAccRepositoryUpstreamGenericName, namespace)
 
 	testAccRepositoryGenericUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-generic"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -690,12 +710,12 @@ resource "cloudsmith_repository_upstream" "gradle_distributions" {
 	    upstream_prefix = "distributions"
 	    verify_ssl      = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamGenericName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(genericUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(genericUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryGenericUpstreamConfigBasic,
@@ -761,7 +781,7 @@ func TestAccRepositoryUpstreamGo_basic(t *testing.T) {
 
 	testAccRepositoryGoUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-go"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -772,11 +792,11 @@ resource "cloudsmith_repository_upstream" "go_proxy" {
     upstream_type = "go"
     upstream_url  = "https://proxy.golang.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamGoName, namespace)
 
 	testAccRepositoryGoUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-go"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -795,12 +815,12 @@ resource "cloudsmith_repository_upstream" "go_proxy" {
 	    upstream_url   = "https://proxy.golang.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamGoName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(goUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(goUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryGoUpstreamConfigBasic,
@@ -864,7 +884,7 @@ func TestAccRepositoryUpstreamHelm_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-helm"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -875,11 +895,11 @@ resource "cloudsmith_repository_upstream" "helm" {
     upstream_type = "helm"
     upstream_url  = "https://charts.helm.sh/stable"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-helm"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -901,12 +921,12 @@ resource "cloudsmith_repository_upstream" "helm" {
 	    upstream_url   = "https://charts.helm.sh/stable"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(helmUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(helmUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -971,7 +991,7 @@ func TestAccRepositoryUpstreamHuggingface_basic(t *testing.T) {
 
 	testAccRepositoryHuggingfaceUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-huggingface"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -982,11 +1002,11 @@ resource "cloudsmith_repository_upstream" "hugging_face" {
     upstream_type = "huggingface"
     upstream_url  = "https://huggingface.co"
 }
-`, namespace)
+`, testAccRepositoryUpstreamHuggingfaceName, namespace)
 
 	testAccRepositoryHuggingfaceUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-huggingface"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1001,12 +1021,12 @@ resource "cloudsmith_repository_upstream" "hugging_face" {
 	    upstream_type  = "huggingface"
 	    upstream_url   = "https://huggingface.co"
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamHuggingfaceName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(huggingfaceUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(huggingfaceUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryHuggingfaceUpstreamConfigBasic,
@@ -1064,7 +1084,7 @@ func TestAccRepositoryUpstreamHex_basic(t *testing.T) {
 
 	testAccRepositoryHexUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-hex"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1075,11 +1095,11 @@ resource "cloudsmith_repository_upstream" "hex" {
     upstream_type = "hex"
     upstream_url  = "https://repo.hex.pm"
 }
-`, namespace)
+`, testAccRepositoryUpstreamHexName, namespace)
 
 	testAccRepositoryHexUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-hex"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1094,12 +1114,12 @@ resource "cloudsmith_repository_upstream" "hex" {
 	    upstream_type  = "hex"
 	    upstream_url   = "https://repo.hex.pm"
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamHexName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(hexUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(hexUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryHexUpstreamConfigBasic,
@@ -1157,7 +1177,7 @@ func TestAccRepositoryUpstreamMaven_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-maven"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1168,11 +1188,11 @@ resource "cloudsmith_repository_upstream" "maven_central" {
     upstream_type = "maven"
     upstream_url  = "https://repo1.maven.org/maven2"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-python"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1191,12 +1211,12 @@ resource "cloudsmith_repository_upstream" "maven_central" {
 	    upstream_url   = "https://repo1.maven.org/maven2"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(mavenUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(mavenUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -1261,7 +1281,7 @@ func TestAccRepositoryUpstreamNpm_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-npm"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1274,11 +1294,11 @@ resource "cloudsmith_repository_upstream" "npmjs" {
     is_active      = true
 
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-npm"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1297,12 +1317,12 @@ resource "cloudsmith_repository_upstream" "npmjs" {
 	    upstream_url   = "https://registry.npmjs.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(npmUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(npmUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -1366,7 +1386,7 @@ func TestAccRepositoryUpstreamNuget_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-nuget"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1377,11 +1397,11 @@ resource "cloudsmith_repository_upstream" "nuget" {
     upstream_type = "nuget"
     upstream_url  = "https://api.nuget.org/v3/index.json"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-nuget"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1400,12 +1420,12 @@ resource "cloudsmith_repository_upstream" "nuget" {
 	    upstream_url   = "https://api.nuget.org/v3/index.json"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(nugetUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(nugetUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -1470,7 +1490,7 @@ func TestAccRepositoryUpstreamPython_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-python"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1481,11 +1501,11 @@ resource "cloudsmith_repository_upstream" "pypi" {
     upstream_type = "python"
     upstream_url  = "https://pypi.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-python"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1507,12 +1527,12 @@ resource "cloudsmith_repository_upstream" "pypi" {
 	    upstream_url   = "https://pypi.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(pythonUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(pythonUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -1577,7 +1597,7 @@ func TestAccRepositoryUpstreamRpm_basic(t *testing.T) {
 
 	var testAccRepositoryRpmUpstreamConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-rpm"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1590,11 +1610,11 @@ resource "cloudsmith_repository_upstream" "rpm_fusion" {
     upstream_url   = "https://download1.rpmfusion.org/free/fedora/releases/35/Everything/x86_64/os"
 	is_active      = false
 }
-`, namespace)
+`, testAccRepositoryUpstreamRpmName, namespace)
 
 	var testAccRepositoryRpmUpstreamConfigUpdate = fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-rpm"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1618,12 +1638,12 @@ resource "cloudsmith_repository_upstream" "rpm_fusion" {
 	    upstream_url    = "https://download1.rpmfusion.org/free/fedora/releases/35/Everything/x86_64/os"
 	    verify_ssl        = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamRpmName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(rpmUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(rpmUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryRpmUpstreamConfigBasic,
@@ -1685,7 +1705,7 @@ func TestAccRepositoryUpstreamRuby_basic(t *testing.T) {
 
 	testAccRepositoryPythonUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-ruby"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1696,11 +1716,11 @@ resource "cloudsmith_repository_upstream" "rubygems" {
     upstream_type = "ruby"
     upstream_url  = "https://rubygems.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamDartName, namespace)
 
 	testAccRepositoryPythonUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-ruby"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1722,12 +1742,12 @@ resource "cloudsmith_repository_upstream" "rubygems" {
 	    upstream_url   = "https://rubygems.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamDartName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(rubyUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(rubyUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryPythonUpstreamConfigBasic,
@@ -1792,7 +1812,7 @@ func TestAccRepositoryUpstreamComposer_basic(t *testing.T) {
 
 	testAccRepositoryComposerUpstreamConfigBasic := fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
-	name      = "terraform-acc-test-upstream-composer"
+	name      = "%s"
 	namespace = "%s"
 }
 
@@ -1803,11 +1823,11 @@ resource "cloudsmith_repository_upstream" "packagist" {
     upstream_type = "composer"
     upstream_url  = "https://packagist.org"
 }
-`, namespace)
+`, testAccRepositoryUpstreamComposerName, namespace)
 
 	testAccRepositoryComposerUpstreamConfigUpdate := fmt.Sprintf(`
 	resource "cloudsmith_repository" "test" {
-		name      = "terraform-acc-test-upstream-composer"
+		name      = "%s"
 		namespace = "%s"
 	}
 
@@ -1829,12 +1849,12 @@ resource "cloudsmith_repository_upstream" "packagist" {
 	    upstream_url   = "https://packagist.org"
 	    verify_ssl     = false
 	}
-	`, namespace)
+	`, testAccRepositoryUpstreamComposerName, namespace)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRepositoryUpstreamCheckDestroy(composerUpstreamResourceName),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccRepositoryUpstreamCheckDestroy(composerUpstreamResourceName),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRepositoryComposerUpstreamConfigBasic,
@@ -1903,7 +1923,10 @@ func testAccRepositoryUpstreamCheckDestroy(resourceName string) resource.TestChe
 			return fmt.Errorf("resource id not set")
 		}
 
-		pc := testAccProvider.Meta().(*providerConfig)
+		pc, err := testAccProviderConfigForChecks()
+		if err != nil {
+			return err
+		}
 
 		namespace := resourceState.Primary.Attributes[Namespace]
 		repository := resourceState.Primary.Attributes[Repository]
@@ -1911,72 +1934,72 @@ func testAccRepositoryUpstreamCheckDestroy(resourceName string) resource.TestChe
 		slugPerm := resourceState.Primary.Attributes[SlugPerm]
 
 		var resp *http.Response
-		var err error
+		var readErr error
 
 		switch upstreamType {
 		case Cargo:
 			req := pc.APIClient.ReposApi.ReposUpstreamCargoRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamCargoReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamCargoReadExecute(req)
 		case Composer:
 			req := pc.APIClient.ReposApi.ReposUpstreamComposerRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamComposerReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamComposerReadExecute(req)
 		case Conda:
 			req := pc.APIClient.ReposApi.ReposUpstreamCondaRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamCondaReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamCondaReadExecute(req)
 		case Cran:
 			req := pc.APIClient.ReposApi.ReposUpstreamCranRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamCranReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamCranReadExecute(req)
 		case Dart:
 			req := pc.APIClient.ReposApi.ReposUpstreamDartRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamDartReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamDartReadExecute(req)
 		case Deb:
 			req := pc.APIClient.ReposApi.ReposUpstreamDebRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamDebReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamDebReadExecute(req)
 		case Docker:
 			req := pc.APIClient.ReposApi.ReposUpstreamDockerRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamDockerReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamDockerReadExecute(req)
 		case Generic:
 			req := pc.APIClient.ReposApi.ReposUpstreamGenericRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamGenericReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamGenericReadExecute(req)
 		case Go:
 			req := pc.APIClient.ReposApi.ReposUpstreamGoRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamGoReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamGoReadExecute(req)
 		case Helm:
 			req := pc.APIClient.ReposApi.ReposUpstreamHelmRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamHelmReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamHelmReadExecute(req)
 		case Hex:
 			req := pc.APIClient.ReposApi.ReposUpstreamHexRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamHexReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamHexReadExecute(req)
 		case HuggingFace:
 			req := pc.APIClient.ReposApi.ReposUpstreamHuggingfaceRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamHuggingfaceReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamHuggingfaceReadExecute(req)
 		case Maven:
 			req := pc.APIClient.ReposApi.ReposUpstreamMavenRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamMavenReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamMavenReadExecute(req)
 		case Npm:
 			req := pc.APIClient.ReposApi.ReposUpstreamNpmRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamNpmReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamNpmReadExecute(req)
 		case NuGet:
 			req := pc.APIClient.ReposApi.ReposUpstreamNugetRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamNugetReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamNugetReadExecute(req)
 		case Python:
 			req := pc.APIClient.ReposApi.ReposUpstreamPythonRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamPythonReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamPythonReadExecute(req)
 		case Rpm:
 			req := pc.APIClient.ReposApi.ReposUpstreamRpmRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamRpmReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamRpmReadExecute(req)
 		case Ruby:
 			req := pc.APIClient.ReposApi.ReposUpstreamRubyRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamRubyReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamRubyReadExecute(req)
 		case Swift:
 			req := pc.APIClient.ReposApi.ReposUpstreamSwiftRead(pc.Auth, namespace, repository, slugPerm)
-			_, resp, err = pc.APIClient.ReposApi.ReposUpstreamSwiftReadExecute(req)
+			_, resp, readErr = pc.APIClient.ReposApi.ReposUpstreamSwiftReadExecute(req)
 		default:
 			return fmt.Errorf("invalid upstream_type: '%s'", upstreamType)
 		}
 
-		if err != nil && !is404(resp) {
-			return fmt.Errorf("unable to verify upstream deletion: %w", err)
+		if readErr != nil && !is404(resp) {
+			return fmt.Errorf("unable to verify upstream deletion: %w", readErr)
 		} else if is200(resp) {
 			return fmt.Errorf("unable to verify upstream deletion: still exists: %s", resourceName)
 		}

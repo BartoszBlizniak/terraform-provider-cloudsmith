@@ -10,15 +10,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-// create a baisc package deny policy function
+var testAccPackageDenyPolicyName = testAccUniqueName("acc-deny-policy")
 
 func TestAccPackageDenyPolicy_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccPackageDenyPolicyCheckDestroy("cloudsmith_package_deny_policy.test"),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccPackageDenyPolicyCheckDestroy("cloudsmith_package_deny_policy.test"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPackageDenyPolicyConfigBasic,
@@ -26,7 +26,7 @@ func TestAccPackageDenyPolicy_basic(t *testing.T) {
 					testAccPackageDenyPolicyCheckExists("cloudsmith_package_deny_policy.test"),
 					resource.TestCheckResourceAttr("cloudsmith_package_deny_policy.test", "namespace", os.Getenv("CLOUDSMITH_NAMESPACE")),
 					resource.TestCheckResourceAttr("cloudsmith_package_deny_policy.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("cloudsmith_package_deny_policy.test", "name", "test-package-deny-policy-terraform-provider"),
+					resource.TestCheckResourceAttr("cloudsmith_package_deny_policy.test", "name", testAccPackageDenyPolicyName),
 					resource.TestCheckResourceAttr("cloudsmith_package_deny_policy.test", "package_query", "name:example_new"),
 				),
 			},
@@ -40,10 +40,10 @@ var testAccPackageDenyPolicyConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_package_deny_policy" "test" {
   namespace = "%s"
   enabled = true
-  name = "test-package-deny-policy-terraform-provider"
+  name = "%s"
   package_query = "name:example_new"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccPackageDenyPolicyName)
 
 // create a package deny policy check destroy function
 
