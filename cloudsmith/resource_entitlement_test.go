@@ -34,6 +34,7 @@ func TestAccEntitlement_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccEntitlementCheckExists("cloudsmith_entitlement.test"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "limit_num_downloads", "0"),
+					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "access_private_broadcasts", "false"),
 				),
 			},
 			{
@@ -41,6 +42,7 @@ func TestAccEntitlement_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccEntitlementCheckExists("cloudsmith_entitlement.test"),
 					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "limit_num_downloads", "100"),
+					resource.TestCheckResourceAttr("cloudsmith_entitlement.test", "access_private_broadcasts", "true"),
 				),
 			},
 			{
@@ -162,9 +164,10 @@ resource "cloudsmith_repository" "test" {
 }
 
 resource "cloudsmith_entitlement" "test" {
-	name                = "%s"
-    limit_num_downloads = 100
-    namespace           = "${cloudsmith_repository.test.namespace}"
-    repository          = "${cloudsmith_repository.test.slug_perm}"
+	name                       = "Test Entitlement Update"
+    access_private_broadcasts  = true
+    limit_num_downloads        = 100
+    namespace                  = "${cloudsmith_repository.test.namespace}"
+    repository                 = "${cloudsmith_repository.test.slug_perm}"
 }
 `, testAccEntitlementRepositoryName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccEntitlementNameUpdate)

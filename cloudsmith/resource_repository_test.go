@@ -185,6 +185,15 @@ resource "cloudsmith_repository" "test" {
 }
 `, testAccRepositoryNameUpdate, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
+var testAccRepositoryConfigBasicInvalidBroadcastState = fmt.Sprintf(`
+resource "cloudsmith_repository" "test" {
+	name      = "terraform-acc-test-update"
+	namespace = "%s"
+
+	broadcast_state = "InvalidState"
+}
+`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+
 var testAccRepositoryConfigBasicUpdateProps = fmt.Sprintf(`
 resource "cloudsmith_repository" "test" {
 	name      = "%s"

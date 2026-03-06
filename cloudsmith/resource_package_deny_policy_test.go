@@ -49,21 +49,26 @@ resource "cloudsmith_package_deny_policy" "test" {
 
 func testAccPackageDenyPolicyCheckDestroy(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		pc, err := testAccProviderConfigForChecks()
-		if err != nil {
-			return err
+		resourceState, ok := s.RootModule().Resources[name]
+		if !ok {
+			return nil
 		}
-		client := pc.APIClient
-		for _, rs := range s.RootModule().Resources {
-			if rs.Type != "cloudsmith_package_deny_policy" {
-				continue
-			}
 
-			_, _, err := client.OrgsApi.OrgsDenyPolicyRead(pc.Auth, rs.Primary.Attributes["namespace"], rs.Primary.ID).Execute()
-			if err == nil {
-				return fmt.Errorf("Package deny policy still exists")
-			}
+		if resourceState.Primary == nil || resourceState.Primary.ID == "" {
+			return nil
 		}
+
+		client := testAccProvider.Meta().(*providerConfig).APIClient
+
+		_, _, err := client.OrgsApi.OrgsDenyPolicyRead(
+			testAccProvider.Meta().(*providerConfig).Auth,
+			resourceState.Primary.Attributes["namespace"],
+			resourceState.Primary.ID,
+		).Execute()
+		if err == nil {
+			return fmt.Errorf("Package deny policy still exists")
+		}
+
 		return nil
 	}
 }
@@ -72,21 +77,26 @@ func testAccPackageDenyPolicyCheckDestroy(name string) resource.TestCheckFunc {
 
 func testAccPackageDenyPolicyCheckExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		pc, err := testAccProviderConfigForChecks()
-		if err != nil {
-			return err
+		resourceState, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", name)
 		}
-		client := pc.APIClient
-		for _, rs := range s.RootModule().Resources {
-			if rs.Type != "cloudsmith_package_deny_policy" {
-				continue
-			}
 
-			_, _, err := client.OrgsApi.OrgsDenyPolicyRead(pc.Auth, rs.Primary.Attributes["namespace"], rs.Primary.ID).Execute()
-			if err != nil {
-				return fmt.Errorf("Package deny policy does not exist")
-			}
+		if resourceState.Primary == nil || resourceState.Primary.ID == "" {
+			return fmt.Errorf("resource id not set")
 		}
+
+		client := testAccProvider.Meta().(*providerConfig).APIClient
+
+		_, _, err := client.OrgsApi.OrgsDenyPolicyRead(
+			testAccProvider.Meta().(*providerConfig).Auth,
+			resourceState.Primary.Attributes["namespace"],
+			resourceState.Primary.ID,
+		).Execute()
+		if err != nil {
+			return fmt.Errorf("Package deny policy does not exist")
+		}
+
 		return nil
 	}
 }
