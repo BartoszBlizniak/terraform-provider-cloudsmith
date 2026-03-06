@@ -10,6 +10,8 @@ This document summarizes the acceptance-test refactor work completed to improve 
 - `cloudsmith_repository_upstream` (for example Conda/Huggingface): `is_active` sometimes read as `false` immediately after create when tests expected `true`.
 - `cloudsmith_saml_auth`: `saml_metadata_inline` intermittently read back as empty string during update checks.
 - `cloudsmith_manage_team`: create path could fail from duplicate auto-membership behavior.
+- `cloudsmith_oidc`: update polling only covered top-level fields and did not verify `mapping_claim`, `service_accounts`, or dynamic mappings had converged.
+- `cloudsmith_list_org_members`: pagination reused the last page number instead of the current page number, which could duplicate the final page and skip earlier pages when more than one page existed.
 
 ### Name collisions and nondeterministic org-level tests
 - OIDC tests reused fixed names and could fail with uniqueness errors (`name` must be unique).
@@ -27,10 +29,12 @@ This document summarizes the acceptance-test refactor work completed to improve 
 
 ### Provider/resource fixes
 - Added post-update read polling for OIDC to wait for updated fields before state assertions.
+- Expanded OIDC update polling to verify `mapping_claim`, `service_accounts`, and dynamic mappings, not just top-level fields.
 - Added retention-rule update polling to ensure zero/non-zero transitions settle before read.
 - Updated upstream create behavior to wait for expected default activation for non-Docker types.
-- Updated SAML auth read behavior to preserve configured metadata state when API transiently omits metadata fields.
+- Replaced the SAML auth metadata workaround with full-state polling after create/update/delete so the provider now waits for the actual API state instead of preserving stale state.
 - Made manage-team create idempotent by using replace-members behavior.
+- Fixed organization-member pagination to request the current page instead of repeating the final page.
 
 ### Acceptance test hardening
 - Added unique test naming helper and adopted it in collision-prone OIDC and retention tests.
@@ -54,6 +58,7 @@ This document summarizes the acceptance-test refactor work completed to improve 
 - Full workflow-equivalent command passed at `-parallel=32`.
 - Full workflow-equivalent command passed at `-parallel=48`.
 - Full workflow-equivalent command passed repeatedly at `-parallel=64` (`-count=3`).
+- Full workflow-equivalent command passed again at `-parallel=64` after the review-driven SAML, OIDC, and org-members fixes.
 - Exact workflow-style command succeeded:
   - `TF_ACC=1 go test -v ./... -parallel=64 -count=3 -timeout=45m`
 
