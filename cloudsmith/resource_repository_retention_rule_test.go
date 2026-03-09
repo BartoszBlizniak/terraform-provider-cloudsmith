@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var testAccRepositoryRetentionRuleRepoName = testAccName("terraform-acc-repo-retention-rule")
+
 // testCheckResourceAttrWithMessage enhances output for attribute checks
 func testCheckResourceAttrWithMessage(resourceName, attrName, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -71,14 +73,14 @@ func TestAccRepositoryRetentionRule_basic(t *testing.T) {
 
 var testAccRepositoryConfig = fmt.Sprintf(`
 resource "cloudsmith_repository" "test-retention" {
-	name        = "terraform-acc-repo-retention-rule"
+	name        = "%s"
 	namespace   = "%s"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryRetentionRuleRepoName, os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccRepositoryRetentionRuleConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_repository" "test-retention" {
-	name        = "terraform-acc-repo-retention-rule"
+	name        = "%s"
 	namespace   = "%s"
 }
 
@@ -94,11 +96,11 @@ resource "cloudsmith_repository_retention_rule" "test" {
 	retention_size_limit = 0
 	retention_package_query_string = "name:test"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryRetentionRuleRepoName, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
 
 var testAccRepositoryRetentionRuleConfigZero = fmt.Sprintf(`
 resource "cloudsmith_repository" "test-retention" {
-	name        = "terraform-acc-repo-retention-rule"
+	name        = "%s"
 	namespace   = "%s"
 }
 
@@ -114,4 +116,4 @@ resource "cloudsmith_repository_retention_rule" "test" {
 	retention_size_limit = 0
 	retention_package_query_string = "name:test"
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, testAccRepositoryRetentionRuleRepoName, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))

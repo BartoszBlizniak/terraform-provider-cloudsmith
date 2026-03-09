@@ -3,6 +3,7 @@ package cloudsmith
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cloudsmith-io/cloudsmith-api-go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -28,25 +29,27 @@ func resourceRepoRetentionRuleUpdate(d *schema.ResourceData, meta interface{}) e
 
 	req := pc.APIClient.ReposApi.RepoRetentionPartialUpdate(pc.Auth, namespace, repo)
 
-	// For integer fields with defaults, we need to always send the value to handle
-	// the case where users explicitly set them to 0 (which would otherwise be
-	// indistinguishable from "not set" using GetOk)
-	retentionCountLimit := int64(d.Get("retention_count_limit").(int))
-	retentionDaysLimit := int64(d.Get("retention_days_limit").(int))
-
 	updateData := cloudsmith.RepositoryRetentionRulesRequestPatch{
 		RetentionEnabled:            optionalBool(d, "retention_enabled"),
 		RetentionGroupByName:        optionalBool(d, "retention_group_by_name"),
 		RetentionGroupByFormat:      optionalBool(d, "retention_group_by_format"),
 		RetentionGroupByPackageType: optionalBool(d, "retention_group_by_package_type"),
 		RetentionPackageQueryString: nullableString(d, "retention_package_query_string"),
-		RetentionCountLimit:         &retentionCountLimit,
-		RetentionDaysLimit:          &retentionDaysLimit,
 	}
 
-	// For retention_size_limit, we need to always send the value to handle
-	// the case where users explicitly set it to 0 (which would otherwise be
-	// indistinguishable from "not set" using GetOk)
+	// Only send count/days limits when explicitly changed. The schema uses
+	// Computed (no Default) so Terraform correctly detects diffs including
+	// transitions to 0; without this guard a fresh create without these fields
+	// configured would accidentally send 0 and override the API's own defaults.
+	if d.HasChange("retention_count_limit") {
+		val := int64(d.Get("retention_count_limit").(int))
+		updateData.RetentionCountLimit = &val
+	}
+	if d.HasChange("retention_days_limit") {
+		val := int64(d.Get("retention_days_limit").(int))
+		updateData.RetentionDaysLimit = &val
+	}
+
 	retentionSizeLimit := int64(d.Get("retention_size_limit").(int))
 	updateData.RetentionSizeLimit = &retentionSizeLimit
 
@@ -65,6 +68,54 @@ func resourceRepoRetentionRuleUpdate(d *schema.ResourceData, meta interface{}) e
 		default:
 			return fmt.Errorf("error updating repository retention rule: %s", err)
 		}
+	}
+
+	checkerFunc := func() error {
+		resp, httpResp, err := pc.APIClient.ReposApi.RepoRetentionRead(pc.Auth, namespace, repo).Execute()
+		if err != nil {
+			if httpResp != nil && httpResp.StatusCode == 404 {
+				return errKeepWaiting
+			}
+			return err
+		}
+		if resp.GetRetentionEnabled() != requiredBool(d, "retention_enabled") {
+			return errKeepWaiting
+		}
+		if resp.GetRetentionGroupByName() != d.Get("retention_group_by_name").(bool) {
+			return errKeepWaiting
+		}
+		if resp.GetRetentionGroupByFormat() != d.Get("retention_group_by_format").(bool) {
+			return errKeepWaiting
+		}
+		if resp.GetRetentionGroupByPackageType() != d.Get("retention_group_by_package_type").(bool) {
+			return errKeepWaiting
+		}
+		if value, ok := d.GetOkExists("retention_count_limit"); ok && resp.GetRetentionCountLimit() != int64(value.(int)) {
+			return errKeepWaiting
+		}
+		if value, ok := d.GetOkExists("retention_days_limit"); ok && resp.GetRetentionDaysLimit() != int64(value.(int)) {
+			return errKeepWaiting
+		}
+		if value, ok := d.GetOkExists("retention_size_limit"); ok && resp.GetRetentionSizeLimit() != int64(value.(int)) {
+			return errKeepWaiting
+		}
+
+		expectedQuery := ""
+		if value, ok := d.GetOk("retention_package_query_string"); ok {
+			expectedQuery = value.(string)
+		}
+		actualQuery := ""
+		if resp.RetentionPackageQueryString.IsSet() && resp.RetentionPackageQueryString.Get() != nil {
+			actualQuery = *resp.RetentionPackageQueryString.Get()
+		}
+		if actualQuery != expectedQuery {
+			return errKeepWaiting
+		}
+
+		return nil
+	}
+	if err := waiter(checkerFunc, defaultUpdateTimeout, time.Second); err != nil {
+		return fmt.Errorf("error waiting for repository retention rule (%s.%s) to be updated: %w", namespace, repo, err)
 	}
 
 	// Handle the response
@@ -167,15 +218,15 @@ func resourceRepoRetentionRule() *schema.Resource {
 			"retention_count_limit": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Default:      100,
-				Description:  "The maximum number of packages to retain. Must be between 0 and 10000.",
+				Computed:     true,
+				Description:  "The maximum number of packages to retain. Must be between 0 and 10000. Defaults to 100 if not specified.",
 				ValidateFunc: validation.IntBetween(0, 10000),
 			},
 			"retention_days_limit": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Default:      28,
-				Description:  "The number of days of packages to retain. Must be between 0 and 180. Defaults to 28 days.",
+				Computed:     true,
+				Description:  "The number of days of packages to retain. Must be between 0 and 180. Defaults to 28 days if not specified.",
 				ValidateFunc: validation.IntBetween(0, 180),
 			},
 			"retention_enabled": {

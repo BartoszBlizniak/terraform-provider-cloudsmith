@@ -114,6 +114,19 @@ type Upstream interface {
 	GetVerifySsl() bool
 }
 
+func desiredUpstreamActiveState(d *schema.ResourceData) bool {
+	if value, ok := d.GetOkExists(IsActive); ok {
+		return value.(bool)
+	}
+
+	switch requiredString(d, UpstreamType) {
+	case Docker:
+		return false
+	default:
+		return true
+	}
+}
+
 func importUpstream(_ context.Context, d *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
 	idParts := strings.Split(d.Id(), ".")
 	if len(idParts) != 4 {
@@ -583,6 +596,9 @@ func resourceRepositoryUpstreamCreate(d *schema.ResourceData, m interface{}) err
 				return errKeepWaiting
 			}
 			return err
+		}
+		if upstream.GetIsActive() != desiredUpstreamActiveState(d) {
+			return errKeepWaiting
 		}
 		return nil
 	}

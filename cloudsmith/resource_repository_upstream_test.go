@@ -1988,27 +1988,45 @@ func testAccRepositoryUpstreamCheckDestroy(resourceName string) resource.TestChe
 	}
 }
 
-// waitForIsActiveTrue waits up to 4 minutes for the resource's is_active attribute to become "true", checking every 10 seconds.
+// waitForIsActiveTrue polls the live API until the upstream's is_active becomes
+// true (or the 4-minute deadline is reached). The Terraform state snapshot
+// passed to TestCheckFuncs is frozen at apply time and cannot reflect
+// subsequent API-side state changes, so we must call the API directly.
 func waitForIsActiveTrue(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		const (
 			maxWait  = 4 * time.Minute
 			interval = 10 * time.Second
 		)
+
+		resourceState, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found in state", resourceName)
+		}
+
+		// Fast path: state already reflects active.
+		if resourceState.Primary.Attributes[IsActive] == "true" {
+			return nil
+		}
+
+		pc := testAccProvider.Meta().(*providerConfig)
+		namespace := resourceState.Primary.Attributes[Namespace]
+		repository := resourceState.Primary.Attributes[Repository]
+		upstreamType := resourceState.Primary.Attributes[UpstreamType]
+		slugPerm := resourceState.Primary.ID
+
 		start := time.Now()
 		for {
-			resourceState, ok := s.RootModule().Resources[resourceName]
-			if !ok {
-				return fmt.Errorf("resource %s not found in state", resourceName)
-			}
-			isActive := resourceState.Primary.Attributes[IsActive]
-			if isActive == "true" {
+			req := pc.APIClient.ReposApi.ReposUpstreamDebRead(pc.Auth, namespace, repository, slugPerm)
+			upstream, _, err := pc.APIClient.ReposApi.ReposUpstreamDebReadExecute(req)
+			if err == nil && upstream.GetIsActive() {
 				return nil
 			}
 			if time.Since(start) > maxWait {
 				return fmt.Errorf("timed out waiting for %s is_active to become true", resourceName)
 			}
 			time.Sleep(interval)
+			_ = upstreamType // only deb upstreams use this helper currently
 		}
 	}
 }

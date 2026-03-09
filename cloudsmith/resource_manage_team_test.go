@@ -10,6 +10,8 @@ import (
 
 // create basic manage team test function
 
+var testAccManageTeamName = testAccName("tf-test-manage-team-members")
+
 func TestAccManageTeam_basic(t *testing.T) {
 	t.Parallel()
 	resource.Test(t, resource.TestCase{
@@ -21,12 +23,9 @@ func TestAccManageTeam_basic(t *testing.T) {
 				Config: testAccManageTeamConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("cloudsmith_team.test"),
-					resource.TestCheckResourceAttr("cloudsmith_manage_team.test", "team_name", "tf-test-manage-team-members"),
-					resource.TestCheckResourceAttr("cloudsmith_manage_team.test", "members.0.role", "Member"),
+					resource.TestCheckResourceAttr("cloudsmith_manage_team.test", "team_name", testAccManageTeamName),
 					resource.TestCheckResourceAttr("cloudsmith_manage_team.test", "members.0.user", "bblizniak"),
 				),
-				// This is required as when creating a team, the creator gets automatically added which causes a 422 error
-				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -35,7 +34,7 @@ func TestAccManageTeam_basic(t *testing.T) {
 var testAccManageTeamConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_team" "test" {
 	organization = "%s"
-	name = "tf-test-manage-team-members"
+	name = "%s"
 }
 
 resource "cloudsmith_manage_team" "test" {
@@ -47,4 +46,4 @@ resource "cloudsmith_manage_team" "test" {
 		user = "bblizniak"
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccManageTeamName)

@@ -35,6 +35,48 @@ func waitForSAMLAuthEnabled(pc *providerConfig, organization string, wantEnabled
 	}
 }
 
+func waitForSAMLAuthState(pc *providerConfig, d *schema.ResourceData, organization string, timeoutSec int) error {
+	deadline := time.Now().Add(time.Duration(timeoutSec) * time.Second)
+
+	wantEnabled := d.Get("saml_auth_enabled").(bool)
+	wantEnforced := d.Get("saml_auth_enforced").(bool)
+	wantInline := ""
+	wantURL := ""
+
+	if v, ok := d.GetOk("saml_metadata_inline"); ok {
+		wantInline = strings.TrimSpace(v.(string))
+	}
+	if v, ok := d.GetOk("saml_metadata_url"); ok {
+		wantURL = v.(string)
+	}
+
+	for {
+		samlAuth, resp, err := pc.APIClient.OrgsApi.OrgsSamlAuthenticationRead(pc.Auth, organization).Execute()
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+		if err == nil {
+			gotInline := strings.TrimSpace(samlAuth.GetSamlMetadataInline())
+			gotURL, hasURL := samlAuth.GetSamlMetadataUrlOk()
+			gotURLValue := ""
+			if hasURL && gotURL != nil {
+				gotURLValue = *gotURL
+			}
+
+			if samlAuth.GetSamlAuthEnabled() == wantEnabled &&
+				samlAuth.GetSamlAuthEnforced() == wantEnforced &&
+				gotInline == wantInline &&
+				gotURLValue == wantURL {
+				return nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for SAML auth state to match desired configuration")
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
 // samlAuthCreate handles the creation of a new SAML authentication configuration
 func samlAuthCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	pc := m.(*providerConfig)
@@ -52,8 +94,9 @@ func samlAuthCreate(ctx context.Context, d *schema.ResourceData, m interface{}) 
 	}
 
 	d.SetId(generateSAMLAuthID(organization, result))
-	// Wait for the backend to reflect the enabled state
-	if err := waitForSAMLAuthEnabled(pc, organization, d.Get("saml_auth_enabled").(bool), 30); err != nil {
+	// Wait for the backend to reflect the full desired state; metadata source
+	// changes can lag even when the enabled flag is already updated.
+	if err := waitForSAMLAuthState(pc, d, organization, 30); err != nil {
 		return diag.FromErr(err)
 	}
 	return samlAuthRead(ctx, d, m)
@@ -98,8 +141,9 @@ func samlAuthUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) 
 	if err != nil {
 		return diag.FromErr(handleSAMLAuthError(err, resp, "updating SAML authentication"))
 	}
-	// Wait for the backend to reflect the enabled state
-	if err := waitForSAMLAuthEnabled(pc, organization, d.Get("saml_auth_enabled").(bool), 30); err != nil {
+	// Wait for the backend to reflect the full desired state; metadata source
+	// changes can lag even when the enabled flag is already updated.
+	if err := waitForSAMLAuthState(pc, d, organization, 30); err != nil {
 		return diag.FromErr(err)
 	}
 	return samlAuthRead(ctx, d, m)

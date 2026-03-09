@@ -11,6 +11,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+var (
+	testAccOidcServiceName         = testAccName("test-oidc-service-account")
+	testAccOidcName                = testAccName("test-oidc-terraform-provider")
+	testAccOidcUpdatedName         = testAccName("test-oidc-terraform-provider-updated")
+	testAccOidcDynamicServiceNameA = testAccName("test-oidc-service-account-a")
+	testAccOidcDynamicServiceNameB = testAccName("test-oidc-service-account-b")
+	testAccOidcDynamicName         = testAccName("test-oidc-terraform-provider-dynamic")
+)
+
 // create basic oidc test function
 
 func TestAccOidc_basic(t *testing.T) {
@@ -29,9 +38,9 @@ func TestAccOidc_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "namespace", os.Getenv("CLOUDSMITH_NAMESPACE")),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "claims.key", "value"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "name", "test-oidc-terraform-provider"),
+					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "name", testAccOidcName),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "provider_url", "https://test.com"),
-					resource.TestMatchResourceAttr("cloudsmith_oidc.test", "service_accounts.0", regexp.MustCompile("^test-oidc-service-account.*$")),
+					resource.TestCheckResourceAttrPair("cloudsmith_oidc.test", "service_accounts.0", "cloudsmith_service.test", "slug"),
 				),
 			},
 			{
@@ -42,9 +51,9 @@ func TestAccOidc_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "namespace", os.Getenv("CLOUDSMITH_NAMESPACE")),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "claims.key", "value2"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "enabled", "false"),
-					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "name", "test-oidc-terraform-provider-updated"),
+					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "name", testAccOidcUpdatedName),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "provider_url", "https://test.com"),
-					resource.TestMatchResourceAttr("cloudsmith_oidc.test", "service_accounts.0", regexp.MustCompile("^test-oidc-service-account.*$")),
+					resource.TestCheckResourceAttrPair("cloudsmith_oidc.test", "service_accounts.0", "cloudsmith_service.test", "slug"),
 				),
 			},
 			{
@@ -56,9 +65,9 @@ func TestAccOidc_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "claims.key", "value"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "claims.key2", "value2"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "name", "test-oidc-terraform-provider-updated"),
+					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "name", testAccOidcUpdatedName),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test", "provider_url", "https://test-updated-url.com"),
-					resource.TestMatchResourceAttr("cloudsmith_oidc.test", "service_accounts.0", regexp.MustCompile("^test-oidc-service-account.*$")),
+					resource.TestCheckResourceAttrPair("cloudsmith_oidc.test", "service_accounts.0", "cloudsmith_service.test", "slug"),
 				),
 			},
 			{
@@ -92,7 +101,7 @@ func TestAccOidc_dynamic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "mapping_claim", "sub"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "dynamic_mappings.#", "1"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "dynamic_mappings.0.claim_value", "value1"),
-					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "dynamic_mappings.0.service_account", "test-oidc-service-account-a"),
+					resource.TestCheckResourceAttrPair("cloudsmith_oidc.test_dynamic", "dynamic_mappings.0.service_account", "cloudsmith_service.test_dyn_a", "slug"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "service_accounts.#", "0"),
 				),
 			},
@@ -117,7 +126,7 @@ func TestAccOidc_dynamic(t *testing.T) {
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "mapping_claim", ""),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "dynamic_mappings.#", "0"),
 					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "service_accounts.#", "1"),
-					resource.TestCheckResourceAttr("cloudsmith_oidc.test_dynamic", "service_accounts.0", "test-oidc-service-account-a"),
+					resource.TestCheckResourceAttrPair("cloudsmith_oidc.test_dynamic", "service_accounts.0", "cloudsmith_service.test_dyn_a", "slug"),
 				),
 			},
 		},
@@ -168,7 +177,7 @@ func testAccOidcCheckExists(name string) resource.TestCheckFunc {
 var testAccOidcConfigBasic = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
     organization = "%s"
-    name = "test-oidc-service-account"
+    name = "%s"
 }
 
 resource "cloudsmith_oidc" "test" {
@@ -178,16 +187,16 @@ resource "cloudsmith_oidc" "test" {
         "key" = "value"
       }
       enabled = true
-      name = "test-oidc-terraform-provider"
+      name = "%s"
       provider_url = "https://test.com"
       service_accounts = [cloudsmith_service.test.slug]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcName)
 
 var testAccOidcConfigBasicUpdateName = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
     organization = "%s"
-    name = "test-oidc-service-account"
+    name = "%s"
 }
 
 resource "cloudsmith_oidc" "test" {
@@ -197,16 +206,16 @@ resource "cloudsmith_oidc" "test" {
         "key" = "value2"
       }
       enabled = false
-      name = "test-oidc-terraform-provider-updated"
+      name = "%s"
       provider_url = "https://test.com"
       service_accounts = [cloudsmith_service.test.slug]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcUpdatedName)
 
 var testAccOidcConfigBasicUpdateProps = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
     organization = "%s"
-    name = "test-oidc-service-account"
+    name = "%s"
 }
 
 resource "cloudsmith_oidc" "test" {
@@ -217,18 +226,18 @@ resource "cloudsmith_oidc" "test" {
         "key2" = "value2"
       }
       enabled = true
-      name = "test-oidc-terraform-provider-updated"
+      name = "%s"
       provider_url = "https://test-updated-url.com"
       service_accounts = [cloudsmith_service.test.slug]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcUpdatedName)
 
 // test invalid oidc config, invalid URL and invalid Service Account
 
 var testAccOidcConfigInvalidProviderURL = fmt.Sprintf(`
 resource "cloudsmith_service" "test" {
     organization = "%s"
-    name = "test-oidc-service-account"
+    name = "%s"
 }
 
 resource "cloudsmith_oidc" "test" {
@@ -238,11 +247,11 @@ resource "cloudsmith_oidc" "test" {
         "key" = "value"
       }
       enabled = true
-      name = "test-oidc-terraform-provider-updated"
+      name = "%s"
       provider_url = "invalid-url"
       service_accounts = [cloudsmith_service.test.slug]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcServiceName, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcUpdatedName)
 
 var testAccOidcConfigInvalidServiceAccount = fmt.Sprintf(`
 
@@ -252,22 +261,22 @@ resource "cloudsmith_oidc" "test" {
         "key" = "value"
       }
       enabled = true
-      name = "test-oidc-terraform-provider-updated"
+      name = "%s"
       provider_url = "https://test-updated-url.com"
       service_accounts = ["invalid-service-account"]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcUpdatedName)
 
 // Dynamic provider configs
 var testAccOidcConfigDynamicCreate = fmt.Sprintf(`
 resource "cloudsmith_service" "test_dyn_a" {
 	organization = "%s"
-	name = "test-oidc-service-account-a"
+	name = "%s"
 }
 
 resource "cloudsmith_service" "test_dyn_b" {
 	organization = "%s"
-	name = "test-oidc-service-account-b"
+	name = "%s"
 }
 
 resource "cloudsmith_oidc" "test_dynamic" {
@@ -277,7 +286,7 @@ resource "cloudsmith_oidc" "test_dynamic" {
 		"aud" = "example"
 	}
 	enabled = true
-	name = "test-oidc-terraform-provider-dynamic"
+	name = "%s"
 	provider_url = "https://dynamic.example.com"
 	mapping_claim = "sub"
 	dynamic_mappings {
@@ -285,17 +294,17 @@ resource "cloudsmith_oidc" "test_dynamic" {
 		service_account = cloudsmith_service.test_dyn_a.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicServiceNameA, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicServiceNameB, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicName)
 
 var testAccOidcConfigDynamicUpdateMappings = fmt.Sprintf(`
 resource "cloudsmith_service" "test_dyn_a" {
 	organization = "%s"
-	name = "test-oidc-service-account-a"
+	name = "%s"
 }
 
 resource "cloudsmith_service" "test_dyn_b" {
 	organization = "%s"
-	name = "test-oidc-service-account-b"
+	name = "%s"
 }
 
 resource "cloudsmith_oidc" "test_dynamic" {
@@ -305,7 +314,7 @@ resource "cloudsmith_oidc" "test_dynamic" {
 		"aud" = "example"
 	}
 	enabled = true
-	name = "test-oidc-terraform-provider-dynamic"
+	name = "%s"
 	provider_url = "https://dynamic.example.com"
 	mapping_claim = "sub"
 	dynamic_mappings {
@@ -317,17 +326,17 @@ resource "cloudsmith_oidc" "test_dynamic" {
 		service_account = cloudsmith_service.test_dyn_b.slug
 	}
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicServiceNameA, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicServiceNameB, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicName)
 
 var testAccOidcConfigDynamicSwitchToStatic = fmt.Sprintf(`
 resource "cloudsmith_service" "test_dyn_a" {
 	organization = "%s"
-	name = "test-oidc-service-account-a"
+	name = "%s"
 }
 
 resource "cloudsmith_service" "test_dyn_b" {
 	organization = "%s"
-	name = "test-oidc-service-account-b"
+	name = "%s"
 }
 
 resource "cloudsmith_oidc" "test_dynamic" {
@@ -337,8 +346,8 @@ resource "cloudsmith_oidc" "test_dynamic" {
 		"aud" = "example"
 	}
 	enabled = true
-	name = "test-oidc-terraform-provider-dynamic"
+	name = "%s"
 	provider_url = "https://dynamic.example.com"
 	service_accounts = [cloudsmith_service.test_dyn_a.slug]
 }
-`, os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"), os.Getenv("CLOUDSMITH_NAMESPACE"))
+`, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicServiceNameA, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicServiceNameB, os.Getenv("CLOUDSMITH_NAMESPACE"), testAccOidcDynamicName)

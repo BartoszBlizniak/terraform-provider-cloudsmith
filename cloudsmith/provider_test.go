@@ -7,7 +7,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -16,6 +18,7 @@ import (
 var (
 	testAccProviders map[string]*schema.Provider
 	testAccProvider  *schema.Provider
+	testAccCounter   uint64
 )
 
 //nolint:gochecknoinits
@@ -40,6 +43,19 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("CLOUDSMITH_NAMESPACE must be set for acceptance tests")
 	}
 }
+
+func testAccName(prefix string) string {
+	const maxNameLength = 40
+
+	suffix := fmt.Sprintf("%06x%02x", time.Now().UnixNano()&0xffffff, atomic.AddUint64(&testAccCounter, 1)&0xff)
+	maxPrefixLength := maxNameLength - len(suffix) - 1
+	if len(prefix) > maxPrefixLength {
+		prefix = prefix[:maxPrefixLength]
+	}
+
+	return fmt.Sprintf("%s-%s", prefix, suffix)
+}
+
 func TestAccProvider_UserSelfValidation(t *testing.T) {
 	// Create mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

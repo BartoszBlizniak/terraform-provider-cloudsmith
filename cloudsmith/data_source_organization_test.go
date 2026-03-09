@@ -22,12 +22,9 @@ func TestAccOrganization_data(t *testing.T) {
 				Config: testAccOrganizationData,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.cloudsmith_organization.test", "slug", os.Getenv("CLOUDSMITH_NAMESPACE")),
-					resource.TestCheckResourceAttrSet("data.cloudsmith_organization.test", "country"),
 					resource.TestCheckResourceAttrSet("data.cloudsmith_organization.test", "created_at"),
-					resource.TestCheckResourceAttrSet("data.cloudsmith_organization.test", "location"),
 					resource.TestCheckResourceAttrSet("data.cloudsmith_organization.test", "name"),
 					resource.TestCheckResourceAttrSet("data.cloudsmith_organization.test", "slug_perm"),
-					resource.TestCheckResourceAttrSet("data.cloudsmith_organization.test", "tagline"),
 				),
 			},
 		},

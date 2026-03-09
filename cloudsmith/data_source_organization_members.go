@@ -51,7 +51,7 @@ func retrieveOrgMemeberListPages(pc *providerConfig, organization string, isActi
 	}
 
 	for pageCurrentCount <= pageCount {
-		membersPage, _, err := retrieveOrgMemeberListPage(pc, organization, isActive, pageSize, pageCount)
+		membersPage, _, err := retrieveOrgMemeberListPage(pc, organization, isActive, pageSize, pageCurrentCount)
 		if err != nil {
 			return nil, err
 		}

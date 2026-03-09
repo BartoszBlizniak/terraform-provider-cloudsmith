@@ -7,3 +7,5 @@ terraform.tfstate.backup
 terraform-provider-cloudsmith
 dist
 
+CLAUDE.md
+AGENTS.md
