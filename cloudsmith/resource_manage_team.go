@@ -1,8 +1,13 @@
 package cloudsmith
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/cloudsmith-io/cloudsmith-api-go"
@@ -25,47 +30,10 @@ func importManageTeam(ctx context.Context, d *schema.ResourceData, m interface{}
 }
 
 func resourceManageTeamAdd(d *schema.ResourceData, m interface{}) error {
-	// this function will add users to an existing team
-	pc := m.(*providerConfig)
-	organization := requiredString(d, "organization")
-	teamName := requiredString(d, "team_name")
-
-	// Fetching members from the Set, converting to a list
-	teamMembersSet := d.Get("members").(*schema.Set).List()
-	teamMembersList := make([]cloudsmith.OrganizationTeamMembership, len(teamMembersSet))
-
-	for i, v := range teamMembersSet {
-		teamMember := v.(map[string]interface{})
-		teamMembersList[i] = cloudsmith.OrganizationTeamMembership{
-			Role: teamMember["role"].(string),
-			User: teamMember["user"].(string),
-		}
-	}
-
-	teamMembersData := cloudsmith.OrganizationTeamMembers{
-		Members: teamMembersList,
-	}
-
-	req := pc.APIClient.OrgsApi.OrgsTeamsMembersCreate(pc.Auth, organization, teamName)
-	req = req.Data(teamMembersData)
-
-	_, _, err := pc.APIClient.OrgsApi.OrgsTeamsMembersCreateExecute(req)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(fmt.Sprintf("%s.%s", organization, teamName))
-
-	return nil
+	return resourceManageTeamReplace(d, m, expandManageTeamMembers(d))
 }
 
-// We're using the replace members endpoint here so we need to compare the existing members with the new members and adjust the delta
-func resourceManageTeamUpdateRemove(d *schema.ResourceData, m interface{}) error {
-	pc := m.(*providerConfig)
-	organization := requiredString(d, "organization")
-	teamName := requiredString(d, "team_name")
-
-	// Fetching members from the Set, converting to a list
+func expandManageTeamMembers(d *schema.ResourceData) []cloudsmith.OrganizationTeamMembership {
 	teamMembersSet := d.Get("members").(*schema.Set).List()
 	teamMembersList := make([]cloudsmith.OrganizationTeamMembership, len(teamMembersSet))
 
@@ -77,21 +45,34 @@ func resourceManageTeamUpdateRemove(d *schema.ResourceData, m interface{}) error
 		}
 	}
 
+	return teamMembersList
+}
+
+func resourceManageTeamReplace(d *schema.ResourceData, m interface{}, members []cloudsmith.OrganizationTeamMembership) error {
+	pc := m.(*providerConfig)
+	organization := requiredString(d, "organization")
+	teamName := requiredString(d, "team_name")
+
 	teamMembersData := cloudsmith.OrganizationTeamMembers{
-		Members: teamMembersList,
+		Members: members,
 	}
 
 	req := pc.APIClient.OrgsApi.OrgsTeamsMembersUpdate(pc.Auth, organization, teamName)
 	req = req.Data(teamMembersData)
 
-	_, _, err := pc.APIClient.OrgsApi.OrgsTeamsMembersUpdateExecute(req)
+	_, resp, err := pc.APIClient.OrgsApi.OrgsTeamsMembersUpdateExecute(req)
 	if err != nil {
-		return err
+		return formatManageTeamAPIError(resp, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s.%s", organization, teamName))
 
-	return nil
+	return resourceManageTeamRead(d, m)
+}
+
+// We're using the replace members endpoint here so we need to compare the existing members with the new members and adjust the delta
+func resourceManageTeamUpdateRemove(d *schema.ResourceData, m interface{}) error {
+	return resourceManageTeamReplace(d, m, expandManageTeamMembers(d))
 }
 
 func resourceManageTeamRead(d *schema.ResourceData, m interface{}) error {
@@ -121,6 +102,13 @@ func resourceManageTeamRead(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	sort.Slice(members, func(i, j int) bool {
+		if members[i]["user"].(string) == members[j]["user"].(string) {
+			return members[i]["role"].(string) < members[j]["role"].(string)
+		}
+		return members[i]["user"].(string) < members[j]["user"].(string)
+	})
+
 	// Setting the values into the resource data
 	d.Set("organization", organization)
 	d.Set("team_name", teamName)
@@ -132,12 +120,74 @@ func resourceManageTeamRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
+func resourceManageTeamDelete(d *schema.ResourceData, m interface{}) error {
+	return resourceManageTeamReplace(d, m, []cloudsmith.OrganizationTeamMembership{})
+}
+
+func formatManageTeamAPIError(resp *http.Response, err error) error {
+	if resp == nil || resp.Body == nil {
+		return err
+	}
+
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil || len(body) == 0 {
+		return err
+	}
+	resp.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	var payload map[string]interface{}
+	if json.Unmarshal(body, &payload) != nil {
+		return err
+	}
+
+	detail, _ := payload["detail"].(string)
+	if fields, ok := payload["fields"]; ok {
+		if message := firstManageTeamValidationMessage(fields); message != "" {
+			if detail != "" {
+				return fmt.Errorf("%s: %s", detail, message)
+			}
+			return fmt.Errorf("%s", message)
+		}
+	}
+	if detail != "" {
+		return fmt.Errorf("%s", detail)
+	}
+
+	return err
+}
+
+func firstManageTeamValidationMessage(v interface{}) string {
+	switch typed := v.(type) {
+	case string:
+		return typed
+	case []interface{}:
+		for _, elem := range typed {
+			if message := firstManageTeamValidationMessage(elem); message != "" {
+				return message
+			}
+		}
+	case map[string]interface{}:
+		keys := make([]string, 0, len(typed))
+		for key := range typed {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			if message := firstManageTeamValidationMessage(typed[key]); message != "" {
+				return message
+			}
+		}
+	}
+
+	return ""
+}
+
 func resourceManageTeam() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceManageTeamAdd,
 		Read:   resourceManageTeamRead,
 		Update: resourceManageTeamUpdateRemove,
-		Delete: resourceManageTeamUpdateRemove,
+		Delete: resourceManageTeamDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: importManageTeam,
 		},
@@ -151,6 +201,7 @@ func resourceManageTeam() *schema.Resource {
 			"team_name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"members": {
 				Type: schema.TypeSet,

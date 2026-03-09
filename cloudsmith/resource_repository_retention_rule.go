@@ -3,6 +3,7 @@ package cloudsmith
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cloudsmith-io/cloudsmith-api-go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -67,6 +68,54 @@ func resourceRepoRetentionRuleUpdate(d *schema.ResourceData, meta interface{}) e
 		default:
 			return fmt.Errorf("error updating repository retention rule: %s", err)
 		}
+	}
+
+	checkerFunc := func() error {
+		resp, httpResp, err := pc.APIClient.ReposApi.RepoRetentionRead(pc.Auth, namespace, repo).Execute()
+		if err != nil {
+			if httpResp != nil && httpResp.StatusCode == 404 {
+				return errKeepWaiting
+			}
+			return err
+		}
+		if resp.GetRetentionEnabled() != requiredBool(d, "retention_enabled") {
+			return errKeepWaiting
+		}
+		if resp.GetRetentionGroupByName() != d.Get("retention_group_by_name").(bool) {
+			return errKeepWaiting
+		}
+		if resp.GetRetentionGroupByFormat() != d.Get("retention_group_by_format").(bool) {
+			return errKeepWaiting
+		}
+		if resp.GetRetentionGroupByPackageType() != d.Get("retention_group_by_package_type").(bool) {
+			return errKeepWaiting
+		}
+		if value, ok := d.GetOkExists("retention_count_limit"); ok && resp.GetRetentionCountLimit() != int64(value.(int)) {
+			return errKeepWaiting
+		}
+		if value, ok := d.GetOkExists("retention_days_limit"); ok && resp.GetRetentionDaysLimit() != int64(value.(int)) {
+			return errKeepWaiting
+		}
+		if value, ok := d.GetOkExists("retention_size_limit"); ok && resp.GetRetentionSizeLimit() != int64(value.(int)) {
+			return errKeepWaiting
+		}
+
+		expectedQuery := ""
+		if value, ok := d.GetOk("retention_package_query_string"); ok {
+			expectedQuery = value.(string)
+		}
+		actualQuery := ""
+		if resp.RetentionPackageQueryString.IsSet() && resp.RetentionPackageQueryString.Get() != nil {
+			actualQuery = *resp.RetentionPackageQueryString.Get()
+		}
+		if actualQuery != expectedQuery {
+			return errKeepWaiting
+		}
+
+		return nil
+	}
+	if err := waiter(checkerFunc, defaultUpdateTimeout, time.Second); err != nil {
+		return fmt.Errorf("error waiting for repository retention rule (%s.%s) to be updated: %w", namespace, repo, err)
 	}
 
 	// Handle the response
