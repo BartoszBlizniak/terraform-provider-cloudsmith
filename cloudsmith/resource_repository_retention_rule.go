@@ -28,25 +28,27 @@ func resourceRepoRetentionRuleUpdate(d *schema.ResourceData, meta interface{}) e
 
 	req := pc.APIClient.ReposApi.RepoRetentionPartialUpdate(pc.Auth, namespace, repo)
 
-	// For integer fields with defaults, we need to always send the value to handle
-	// the case where users explicitly set them to 0 (which would otherwise be
-	// indistinguishable from "not set" using GetOk)
-	retentionCountLimit := int64(d.Get("retention_count_limit").(int))
-	retentionDaysLimit := int64(d.Get("retention_days_limit").(int))
-
 	updateData := cloudsmith.RepositoryRetentionRulesRequestPatch{
 		RetentionEnabled:            optionalBool(d, "retention_enabled"),
 		RetentionGroupByName:        optionalBool(d, "retention_group_by_name"),
 		RetentionGroupByFormat:      optionalBool(d, "retention_group_by_format"),
 		RetentionGroupByPackageType: optionalBool(d, "retention_group_by_package_type"),
 		RetentionPackageQueryString: nullableString(d, "retention_package_query_string"),
-		RetentionCountLimit:         &retentionCountLimit,
-		RetentionDaysLimit:          &retentionDaysLimit,
 	}
 
-	// For retention_size_limit, we need to always send the value to handle
-	// the case where users explicitly set it to 0 (which would otherwise be
-	// indistinguishable from "not set" using GetOk)
+	// Only send count/days limits when explicitly changed. The schema uses
+	// Computed (no Default) so Terraform correctly detects diffs including
+	// transitions to 0; without this guard a fresh create without these fields
+	// configured would accidentally send 0 and override the API's own defaults.
+	if d.HasChange("retention_count_limit") {
+		val := int64(d.Get("retention_count_limit").(int))
+		updateData.RetentionCountLimit = &val
+	}
+	if d.HasChange("retention_days_limit") {
+		val := int64(d.Get("retention_days_limit").(int))
+		updateData.RetentionDaysLimit = &val
+	}
+
 	retentionSizeLimit := int64(d.Get("retention_size_limit").(int))
 	updateData.RetentionSizeLimit = &retentionSizeLimit
 
@@ -167,15 +169,15 @@ func resourceRepoRetentionRule() *schema.Resource {
 			"retention_count_limit": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Default:      100,
-				Description:  "The maximum number of packages to retain. Must be between 0 and 10000.",
+				Computed:     true,
+				Description:  "The maximum number of packages to retain. Must be between 0 and 10000. Defaults to 100 if not specified.",
 				ValidateFunc: validation.IntBetween(0, 10000),
 			},
 			"retention_days_limit": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Default:      28,
-				Description:  "The number of days of packages to retain. Must be between 0 and 180. Defaults to 28 days.",
+				Computed:     true,
+				Description:  "The number of days of packages to retain. Must be between 0 and 180. Defaults to 28 days if not specified.",
 				ValidateFunc: validation.IntBetween(0, 180),
 			},
 			"retention_enabled": {
