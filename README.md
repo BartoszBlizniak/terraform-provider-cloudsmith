@@ -34,6 +34,21 @@ To use a released provider in your Terraform environment, run [`terraform init`]
 
 To instead use a custom-built provider in your Terraform environment (e.g. the provider binary from the build instructions above), follow the instructions to [install it as a plugin.](https://www.terraform.io/docs/plugins/basics.html#installing-plugins) After placing the custom-built provider into your plugins directory, run `terraform init` to initialize it.
 
+### Authenticate with OIDC
+
+Use an `oidc` block, or set `CLOUDSMITH_USE_OIDC=true`. Do not set `api_key` in HCL. The provider reads or mints an identity token (HCP Terraform, GitHub Actions GET, Azure DevOps POST, GitLab `id_tokens` on the job, CircleCI, Bitbucket `oidc: true`, or an explicit token/file). Match Cloudsmith `aud` claims to the platform token. Full setup is in `docs/index.md`.
+
+```hcl
+provider "cloudsmith" {
+    oidc {
+        organization = "acme-org"
+        service_slug = "tfc-prod"
+    }
+}
+```
+
+You can omit `organization` and `service_slug` when `CLOUDSMITH_ORG` and `CLOUDSMITH_SERVICE_SLUG` are set. An empty `provider "cloudsmith" {}` block does not enable OIDC unless `CLOUDSMITH_USE_OIDC` is true. An `oidc` block ignores leftover `CLOUDSMITH_API_KEY`.
+
 ### Examples
 
 Create a repository with a custom entitlement token
