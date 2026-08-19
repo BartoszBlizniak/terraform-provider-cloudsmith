@@ -12,7 +12,7 @@ import (
 )
 
 // Provider returns a terraform.ResourceProvider.
-func Provider() *schema.Provider {
+func Provider(version string) *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_key": {
@@ -114,13 +114,14 @@ func Provider() *schema.Provider {
 		}
 
 		apiHost := requiredString(d, "api_host")
-		userAgent := fmt.Sprintf("(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, terraformVersion)
 		headers := d.Get("headers").(map[string]interface{})
 
 		cred, err := parseCredential(authSpecFromResourceData(d), os.Getenv)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
+
+		userAgent := buildUserAgent(version, terraformVersion, cred.authMode())
 		tokens, err := tokenSourceFromCredential(cred, apiHost, headers, userAgent, os.Getenv, os.ReadFile, nil, nil)
 		if err != nil {
 			return nil, diag.FromErr(err)
@@ -130,4 +131,18 @@ func Provider() *schema.Provider {
 	}
 
 	return p
+}
+
+// buildUserAgent identifies the provider release, the platform, the Terraform
+// version, and how the request authenticated. The auth mode lets Cloudsmith
+// see OIDC adoption without any extra header; requests that exchange an OIDC
+// token narrow it further to the discovery source (see withOIDCSource).
+func buildUserAgent(version, terraformVersion, authMode string) string {
+	if version == "" {
+		version = "dev"
+	}
+	return fmt.Sprintf(
+		"terraform-provider-cloudsmith/%s (%s %s) Terraform/%s auth:%s",
+		version, runtime.GOOS, runtime.GOARCH, terraformVersion, authMode,
+	)
 }

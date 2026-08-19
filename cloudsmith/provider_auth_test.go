@@ -189,20 +189,29 @@ func TestLoadAssertion(t *testing.T) {
 	t.Cleanup(mint.Close)
 
 	tests := []struct {
-		name    string
-		env     map[string]string
-		want    string
-		wantErr error
+		name       string
+		env        map[string]string
+		want       string
+		wantSource string
+		wantErr    error
 	}{
 		{
-			name: "prefers CLOUDSMITH_OIDC_TOKEN",
-			env:  map[string]string{"CLOUDSMITH_OIDC_TOKEN": "env-jwt", "CLOUDSMITH_OIDC_TOKEN_FILE": tokenFile, "TFC_WORKLOAD_IDENTITY_TOKEN": "tfc-jwt"},
-			want: "env-jwt",
+			name:       "prefers CLOUDSMITH_OIDC_TOKEN",
+			env:        map[string]string{"CLOUDSMITH_OIDC_TOKEN": "env-jwt", "CLOUDSMITH_OIDC_TOKEN_FILE": tokenFile, "TFC_WORKLOAD_IDENTITY_TOKEN": "tfc-jwt"},
+			want:       "env-jwt",
+			wantSource: oidcSourceGeneric,
 		},
 		{
-			name: "token file before TFC",
-			env:  map[string]string{"CLOUDSMITH_OIDC_TOKEN_FILE": tokenFile, "TFC_WORKLOAD_IDENTITY_TOKEN": "tfc-jwt"},
-			want: "file-jwt",
+			name:       "CLOUDSMITH_OIDC_TOKEN under GitLab CI reports gitlab",
+			env:        map[string]string{"GITLAB_CI": "true", "CLOUDSMITH_OIDC_TOKEN": "env-jwt"},
+			want:       "env-jwt",
+			wantSource: oidcSourceGitLab,
+		},
+		{
+			name:       "token file before TFC",
+			env:        map[string]string{"CLOUDSMITH_OIDC_TOKEN_FILE": tokenFile, "TFC_WORKLOAD_IDENTITY_TOKEN": "tfc-jwt"},
+			want:       "file-jwt",
+			wantSource: oidcSourceTokenFile,
 		},
 		{
 			name:    "empty token file does not fall through",
@@ -210,9 +219,10 @@ func TestLoadAssertion(t *testing.T) {
 			wantErr: errEmptyTokenFile,
 		},
 		{
-			name: "TFC untagged token",
-			env:  map[string]string{"TFC_WORKLOAD_IDENTITY_TOKEN": "tfc-jwt"},
-			want: "tfc-jwt",
+			name:       "TFC untagged token",
+			env:        map[string]string{"TFC_WORKLOAD_IDENTITY_TOKEN": "tfc-jwt"},
+			want:       "tfc-jwt",
+			wantSource: oidcSourceHCPTerraform,
 		},
 		{
 			name: "tagged TFC token before untagged",
@@ -220,7 +230,8 @@ func TestLoadAssertion(t *testing.T) {
 				"TFC_WORKLOAD_IDENTITY_TOKEN_CLOUDSMITH": "tagged-jwt",
 				"TFC_WORKLOAD_IDENTITY_TOKEN":            "tfc-jwt",
 			},
-			want: "tagged-jwt",
+			want:       "tagged-jwt",
+			wantSource: oidcSourceHCPTerraform,
 		},
 		{
 			name: "TFC before GitHub mint",
@@ -229,7 +240,8 @@ func TestLoadAssertion(t *testing.T) {
 				"ACTIONS_ID_TOKEN_REQUEST_URL":   mint.URL,
 				"ACTIONS_ID_TOKEN_REQUEST_TOKEN": "mint-token",
 			},
-			want: "tfc-jwt",
+			want:       "tfc-jwt",
+			wantSource: oidcSourceHCPTerraform,
 		},
 		{
 			name: "GitHub Actions mint",
@@ -237,7 +249,8 @@ func TestLoadAssertion(t *testing.T) {
 				"ACTIONS_ID_TOKEN_REQUEST_URL":   mint.URL,
 				"ACTIONS_ID_TOKEN_REQUEST_TOKEN": "mint-token",
 			},
-			want: "gha-jwt",
+			want:       "gha-jwt",
+			wantSource: oidcSourceGitHub,
 		},
 		{
 			name: "generic request URL is GitHub-shaped GET",
@@ -245,7 +258,8 @@ func TestLoadAssertion(t *testing.T) {
 				"CLOUDSMITH_OIDC_REQUEST_URL":   mint.URL,
 				"CLOUDSMITH_OIDC_REQUEST_TOKEN": "mint-token",
 			},
-			want: "gha-jwt",
+			want:       "gha-jwt",
+			wantSource: oidcSourceGeneric,
 		},
 		{
 			name:    "GitHub URL without token",
@@ -258,14 +272,16 @@ func TestLoadAssertion(t *testing.T) {
 			wantErr: errOIDCRequestIncomplete,
 		},
 		{
-			name: "CircleCI v2 before v1",
-			env:  map[string]string{"CIRCLE_OIDC_TOKEN_V2": "circle-v2", "CIRCLE_OIDC_TOKEN": "circle-v1"},
-			want: "circle-v2",
+			name:       "CircleCI v2 before v1",
+			env:        map[string]string{"CIRCLE_OIDC_TOKEN_V2": "circle-v2", "CIRCLE_OIDC_TOKEN": "circle-v1"},
+			want:       "circle-v2",
+			wantSource: oidcSourceCircleCI,
 		},
 		{
-			name: "Bitbucket",
-			env:  map[string]string{"BITBUCKET_STEP_OIDC_TOKEN": "bb-jwt"},
-			want: "bb-jwt",
+			name:       "Bitbucket",
+			env:        map[string]string{"BITBUCKET_STEP_OIDC_TOKEN": "bb-jwt"},
+			want:       "bb-jwt",
+			wantSource: oidcSourceBitbucket,
 		},
 		{
 			name:    "missing",
@@ -275,7 +291,7 @@ func TestLoadAssertion(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := loadAssertion(context.Background(), func(k string) string { return tc.env[k] }, os.ReadFile, mint.Client())
+			got, source, err := loadAssertion(context.Background(), func(k string) string { return tc.env[k] }, os.ReadFile, mint.Client())
 			if tc.wantErr != nil {
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("error = %v, want %v", err, tc.wantErr)
@@ -288,6 +304,9 @@ func TestLoadAssertion(t *testing.T) {
 			}
 			if got != tc.want {
 				t.Fatalf("assertion = %q, want %q", got, tc.want)
+			}
+			if source != tc.wantSource {
+				t.Fatalf("source = %q, want %q", source, tc.wantSource)
 			}
 		})
 	}
@@ -324,7 +343,7 @@ func TestLoadAssertionAzureDevOps(t *testing.T) {
 	}))
 	t.Cleanup(ado.Close)
 
-	got, err := loadAssertion(context.Background(), func(k string) string {
+	got, _, err := loadAssertion(context.Background(), func(k string) string {
 		switch k {
 		case "SYSTEM_OIDCREQUESTURI":
 			return ado.URL + "/_apis/distributedtask/hubs/build/plans/p/jobs/j/oidctoken"
@@ -357,7 +376,7 @@ func TestLoadAssertionAzureDevOpsServiceConnection(t *testing.T) {
 	}))
 	t.Cleanup(ado.Close)
 
-	got, err := loadAssertion(context.Background(), func(k string) string {
+	got, _, err := loadAssertion(context.Background(), func(k string) string {
 		switch k {
 		case "SYSTEM_OIDCREQUESTURI":
 			return ado.URL + "/_apis/distributedtask/hubs/build/plans/p/jobs/j/oidctoken"
@@ -392,7 +411,7 @@ func TestLoadAssertionAzureDevOpsGenericRequestURL(t *testing.T) {
 	}))
 	t.Cleanup(ado.Close)
 
-	got, err := loadAssertion(context.Background(), func(k string) string {
+	got, _, err := loadAssertion(context.Background(), func(k string) string {
 		switch k {
 		case "CLOUDSMITH_OIDC_REQUEST_URL":
 			return ado.URL + "/_apis/distributedtask/hubs/build/plans/p/jobs/j/oidctoken"
@@ -916,7 +935,7 @@ func TestProviderConfigure_UserSelf401RetriesExchange(t *testing.T) {
 
 func configureProviderRaw(t *testing.T, raw map[string]interface{}) (interface{}, diag.Diagnostics) {
 	t.Helper()
-	p := Provider()
+	p := Provider("test")
 	d := schema.TestResourceDataRaw(t, p.Schema, raw)
 	return p.ConfigureContextFunc(context.Background(), d)
 }
@@ -943,6 +962,9 @@ func clearOIDCEnv(t *testing.T) {
 		"CIRCLE_OIDC_TOKEN",
 		"BITBUCKET_STEP_OIDC_TOKEN",
 		"CLOUDSMITH_ADO_SERVICE_CONNECTION_ID",
+		// Read by envTokenSourceID: without it, running the suite inside
+		// GitLab CI would report the gitlab source where tests expect generic.
+		"GITLAB_CI",
 	} {
 		t.Setenv(key, "")
 	}
@@ -1029,6 +1051,118 @@ func assertNoSecret(t *testing.T, diags diag.Diagnostics, secrets ...string) {
 		if secret != "" && strings.Contains(msg, secret) {
 			t.Fatalf("diagnostics leaked %q: %s", secret, msg)
 		}
+	}
+}
+
+func TestBuildUserAgent(t *testing.T) {
+	ua := buildUserAgent("1.2.3", "1.9.0", "oidc")
+	if !strings.HasPrefix(ua, "terraform-provider-cloudsmith/1.2.3 ") {
+		t.Errorf("user agent = %q, want a terraform-provider-cloudsmith/<version> prefix", ua)
+	}
+	if !strings.Contains(ua, "Terraform/1.9.0") {
+		t.Errorf("user agent = %q, want the Terraform version", ua)
+	}
+	if !strings.HasSuffix(ua, " auth:oidc") {
+		t.Errorf("user agent = %q, want an auth:oidc suffix", ua)
+	}
+	if static := buildUserAgent("1.2.3", "1.9.0", "static"); !strings.HasSuffix(static, " auth:static") {
+		t.Errorf("user agent = %q, want an auth:static suffix", static)
+	}
+	if dev := buildUserAgent("", "1.9.0", "static"); !strings.HasPrefix(dev, "terraform-provider-cloudsmith/dev ") {
+		t.Errorf("user agent = %q, want the dev fallback version", dev)
+	}
+}
+
+func TestExchangeUserAgentReportsDiscoverySource(t *testing.T) {
+	const baseUA = "terraform-provider-cloudsmith/1.2.3 (linux amd64) Terraform/1.9.0 auth:oidc"
+
+	mint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"value":"gha-jwt"}`)
+	}))
+	t.Cleanup(mint.Close)
+
+	tests := []struct {
+		name string
+		env  map[string]string
+		want string
+	}{
+		{
+			name: "explicit token",
+			env:  map[string]string{"CLOUDSMITH_OIDC_TOKEN": "env-jwt"},
+			want: baseUA + "/generic",
+		},
+		{
+			name: "GitLab CI",
+			env:  map[string]string{"GITLAB_CI": "true", "CLOUDSMITH_OIDC_TOKEN": "env-jwt"},
+			want: baseUA + "/gitlab",
+		},
+		{
+			name: "HCP Terraform",
+			env:  map[string]string{"TFC_WORKLOAD_IDENTITY_TOKEN": "tfc-jwt"},
+			want: baseUA + "/hcp_terraform",
+		},
+		{
+			name: "GitHub Actions mint",
+			env: map[string]string{
+				"ACTIONS_ID_TOKEN_REQUEST_URL":   mint.URL,
+				"ACTIONS_ID_TOKEN_REQUEST_TOKEN": "mint-token",
+			},
+			want: baseUA + "/github",
+		},
+		{
+			name: "CircleCI",
+			env:  map[string]string{"CIRCLE_OIDC_TOKEN_V2": "circle-jwt"},
+			want: baseUA + "/circleci",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotUA string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotUA = r.Header.Get("User-Agent")
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, `{"token":"cs-jwt"}`)
+			}))
+			t.Cleanup(srv.Close)
+
+			src := &oidcTokenSource{
+				identity:  oidcIdentity{organization: "acme-org", serviceSlug: "ci-prod"},
+				apiHost:   srv.URL,
+				userAgent: baseUA,
+				getenv:    func(k string) string { return tc.env[k] },
+				readFile:  os.ReadFile,
+				client:    mint.Client(),
+				now:       time.Now,
+			}
+
+			if _, err := src.Token(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			if gotUA != tc.want {
+				t.Fatalf("exchange User-Agent = %q, want %q", gotUA, tc.want)
+			}
+		})
+	}
+}
+
+func TestAPITrafficCarriesProviderUserAgent(t *testing.T) {
+	const wantUA = "terraform-provider-cloudsmith/1.2.3 (linux amd64) Terraform/1.9.0 auth:static"
+
+	var gotUA string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUA = r.Header.Get("User-Agent")
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"email":"sa@example.com","name":"tfc","slug":"tfc","slug_perm":"tfc"}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	if _, diags := newProviderConfig(context.Background(), srv.URL, staticToken("valid-token"), map[string]interface{}{}, wantUA); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if gotUA != wantUA {
+		t.Fatalf("User-Agent = %q, want %q", gotUA, wantUA)
 	}
 }
 

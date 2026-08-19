@@ -27,6 +27,18 @@ const (
 	oidcMintGeneric = "generic"
 	oidcMintGitHub  = "github"
 	oidcMintADO     = "ado"
+
+	// Discovery source ids reported in the User-Agent of the token exchange.
+	// The shared ones match cloudsmith-cli's detector ids so provider and CLI
+	// traffic aggregate into the same buckets.
+	oidcSourceGitHub       = "github"
+	oidcSourceAzureDevOps  = "azure_devops"
+	oidcSourceCircleCI     = "circleci"
+	oidcSourceBitbucket    = "bitbucket"
+	oidcSourceGitLab       = "gitlab"
+	oidcSourceGeneric      = "generic"
+	oidcSourceTokenFile    = "token_file"
+	oidcSourceHCPTerraform = "hcp_terraform"
 )
 
 var (
@@ -40,6 +52,14 @@ var (
 	errInvalidCredential     = errors.New("invalid credential")
 	errInvalidAPIHost        = errors.New("api_host must be an absolute URL")
 )
+
+// authMode labels the credential for the User-Agent.
+func (c credential) authMode() string {
+	if c.oidc != nil {
+		return "oidc"
+	}
+	return "static"
+}
 
 type tokenSource interface {
 	Token(ctx context.Context) (string, error)
@@ -88,11 +108,11 @@ func (s *oidcTokenSource) Token(ctx context.Context) (string, error) {
 	if s.cached != "" && now.Add(tokenRefreshSkew).Before(s.expiry) {
 		return s.cached, nil
 	}
-	assertion, err := loadAssertion(ctx, s.getenv, s.readFile, s.client)
+	assertion, source, err := loadAssertion(ctx, s.getenv, s.readFile, s.client)
 	if err != nil {
 		return "", err
 	}
-	token, err := exchangeOIDC(ctx, s.apiHost, s.headers, s.userAgent, s.identity, assertion)
+	token, err := exchangeOIDC(ctx, s.apiHost, s.headers, s.userAgent, s.identity, assertion, source)
 	if err != nil {
 		return "", err
 	}
@@ -223,39 +243,58 @@ func tokenSourceFromCredential(
 	}
 }
 
-func loadAssertion(ctx context.Context, getenv func(string) string, readFile func(string) ([]byte, error), client *http.Client) (string, error) {
+// loadAssertion returns the identity token and the id of the source it came
+// from. The source is reported in the exchange User-Agent only; it never
+// influences which token is used.
+func loadAssertion(ctx context.Context, getenv func(string) string, readFile func(string) ([]byte, error), client *http.Client) (string, string, error) {
 	if v := strings.TrimSpace(getenv("CLOUDSMITH_OIDC_TOKEN")); v != "" {
-		return v, nil
+		return v, envTokenSourceID(getenv), nil
 	}
 	if path := strings.TrimSpace(getenv("CLOUDSMITH_OIDC_TOKEN_FILE")); path != "" {
 		b, err := readFile(path)
 		if err != nil {
-			return "", fmt.Errorf("read CLOUDSMITH_OIDC_TOKEN_FILE: %w", err)
+			return "", "", fmt.Errorf("read CLOUDSMITH_OIDC_TOKEN_FILE: %w", err)
 		}
 		if v := strings.TrimSpace(string(b)); v != "" {
-			return v, nil
+			return v, oidcSourceTokenFile, nil
 		}
-		return "", errEmptyTokenFile
+		return "", "", errEmptyTokenFile
 	}
-	if v := strings.TrimSpace(getenv("TFC_WORKLOAD_IDENTITY_TOKEN_CLOUDSMITH")); v != "" {
-		return v, nil
+	for _, key := range []string{"TFC_WORKLOAD_IDENTITY_TOKEN_CLOUDSMITH", "TFC_WORKLOAD_IDENTITY_TOKEN"} {
+		if v := strings.TrimSpace(getenv(key)); v != "" {
+			return v, oidcSourceHCPTerraform, nil
+		}
 	}
-	if v := strings.TrimSpace(getenv("TFC_WORKLOAD_IDENTITY_TOKEN")); v != "" {
-		return v, nil
-	}
-	minted, err := mintFromRequest(ctx, getenv, client)
+	minted, mintedSource, err := mintFromRequest(ctx, getenv, client)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if minted != "" {
-		return minted, nil
+		return minted, mintedSource, nil
 	}
-	for _, key := range []string{"CIRCLE_OIDC_TOKEN_V2", "CIRCLE_OIDC_TOKEN", "BITBUCKET_STEP_OIDC_TOKEN"} {
-		if v := strings.TrimSpace(getenv(key)); v != "" {
-			return v, nil
+	for _, s := range []struct {
+		key    string
+		source string
+	}{
+		{"CIRCLE_OIDC_TOKEN_V2", oidcSourceCircleCI},
+		{"CIRCLE_OIDC_TOKEN", oidcSourceCircleCI},
+		{"BITBUCKET_STEP_OIDC_TOKEN", oidcSourceBitbucket},
+	} {
+		if v := strings.TrimSpace(getenv(s.key)); v != "" {
+			return v, s.source, nil
 		}
 	}
-	return "", errMissingOIDCToken
+	return "", "", errMissingOIDCToken
+}
+
+// envTokenSourceID splits CLOUDSMITH_OIDC_TOKEN into the same two buckets
+// cloudsmith-cli uses: GitLab writes it via job-level id_tokens, anything else
+// exporting it is generic (Jenkins, a wrapper script, a local run).
+func envTokenSourceID(getenv func(string) string) string {
+	if strings.TrimSpace(getenv("GITLAB_CI")) == "true" {
+		return oidcSourceGitLab
+	}
+	return oidcSourceGeneric
 }
 
 type oidcMintRequest struct {
@@ -264,18 +303,24 @@ type oidcMintRequest struct {
 	kind  string
 }
 
-func mintFromRequest(ctx context.Context, getenv func(string) string, client *http.Client) (string, error) {
+func mintFromRequest(ctx context.Context, getenv func(string) string, client *http.Client) (string, string, error) {
 	req, err := oidcRequestPair(getenv)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if req.url == "" {
-		return "", nil
+		return "", "", nil
 	}
 	if req.kind == oidcMintADO || isAzureDevOpsOIDCURL(req.url) {
-		return mintAzureDevOpsAssertion(ctx, req.url, req.token, getenv, client)
+		token, err := mintAzureDevOpsAssertion(ctx, req.url, req.token, getenv, client)
+		return token, oidcSourceAzureDevOps, err
 	}
-	return mintGitHubAssertion(ctx, req.url, req.token, getenv, client)
+	token, err := mintGitHubAssertion(ctx, req.url, req.token, getenv, client)
+	source := oidcSourceGitHub
+	if req.kind == oidcMintGeneric {
+		source = oidcSourceGeneric
+	}
+	return token, source, err
 }
 
 func mintGitHubAssertion(ctx context.Context, reqURL, reqToken string, getenv func(string) string, client *http.Client) (string, error) {
@@ -440,23 +485,26 @@ func parseMintedToken(body []byte) (string, error) {
 	return "", nil
 }
 
-func exchangeOIDC(ctx context.Context, apiHost string, headers map[string]interface{}, userAgent string, id oidcIdentity, assertion string) (string, error) {
+func exchangeOIDC(ctx context.Context, apiHost string, headers map[string]interface{}, userAgent string, id oidcIdentity, assertion, source string) (string, error) {
 	openIDBase, err := openIDServerURL(apiHost)
 	if err != nil {
 		return "", err
 	}
+
+	exchangeUserAgent := withOIDCSource(userAgent, source)
 
 	cfg := cloudsmith.NewConfiguration()
 	cfg.Debug = false
 	cfg.HTTPClient = &http.Client{
 		Timeout: oidcHTTPTimeout,
 		Transport: &headerTransport{
-			headers: headers,
-			rt:      http.DefaultTransport,
+			headers:   headers,
+			userAgent: exchangeUserAgent,
+			rt:        http.DefaultTransport,
 		},
 	}
 	cfg.Servers = cloudsmith.ServerConfigurations{{URL: openIDBase}}
-	cfg.UserAgent = userAgent
+	cfg.UserAgent = exchangeUserAgent
 
 	client := cloudsmith.NewAPIClient(cfg)
 	out, _, err := client.OpenidApi.OpenidCreate(ctx, id.organization).
@@ -527,4 +575,15 @@ func jwtExpiry(token string) time.Time {
 		return time.Time{}
 	}
 	return time.Unix(claims.Exp, 0)
+}
+
+// withOIDCSource narrows the "auth:oidc" tag already in the User-Agent to the
+// discovery source that produced the identity token, e.g. "auth:oidc/github".
+// Only the exchange request carries it: that is the one request per token that
+// tells Cloudsmith which CI system the provider auto-discovered.
+func withOIDCSource(userAgent, source string) string {
+	if source == "" {
+		return userAgent
+	}
+	return userAgent + "/" + source
 }

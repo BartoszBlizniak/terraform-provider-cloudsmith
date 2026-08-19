@@ -52,14 +52,14 @@ const testAccRepositoryNameMaxLength = 50
 
 //nolint:gochecknoinits
 func init() {
-	testAccProvider = Provider()
+	testAccProvider = Provider("test")
 	testAccProviders = map[string]*schema.Provider{
 		"cloudsmith": testAccProvider,
 	}
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	if err := Provider("test").InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }

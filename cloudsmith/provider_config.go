@@ -41,7 +41,8 @@ func newProviderConfig(ctx context.Context, apiHost string, tokens tokenSource, 
 
 	httpClient := &http.Client{
 		Transport: logging.NewSubsystemLoggingHTTPTransport("Cloudsmith", &headerTransport{
-			headers: headers,
+			headers:   headers,
+			userAgent: userAgent,
 			rt: &apiKeyTransport{
 				tokens:  tokens,
 				apiHost: credentialHost(apiHost),
@@ -107,11 +108,18 @@ func (pc *providerConfig) GetAPIKey() string {
 }
 
 type headerTransport struct {
-	headers map[string]interface{}
-	rt      http.RoundTripper
+	headers   map[string]interface{}
+	userAgent string
+	rt        http.RoundTripper
 }
 
 func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// The v2 SDK stamps its own generated User-Agent and offers no option to
+	// change it, so set ours here to keep v1, v2 and exchange traffic
+	// identifiable as the same provider run.
+	if t.userAgent != "" {
+		req.Header.Set("User-Agent", t.userAgent)
+	}
 	for k, v := range t.headers {
 		req.Header.Add(k, fmt.Sprint(v))
 	}
